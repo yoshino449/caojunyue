@@ -1,20 +1,8 @@
-# 1. 配置Git用户名和邮箱（只需要第一次电脑上执行一次）
-git config --global user.name "你的Gitee用户名"
-git config --global user.email "你的Gitee绑定邮箱"
+### 👋 关于我
+我是曹骏越，软件测试方向的学生，正在学习Git与代码版本管理。
+📮 讨论组号：【这里填上你的讨论组号】
+🎯 课程目标：熟练掌握Git操作，能够独立完成代码提交、分支管理，学会使用Gitee托管项目。
 
-# 2. 初始化本地git仓库（在项目文件夹执行）
-git init
-
-# 3. 将当前所有文件加入暂存区
-git add .
-
-# 4. 本地提交，备注写first commit
-git commit -m "first commit"
-
-# 5. 关联远程Gitee仓库，粘贴你复制的仓库地址
-git remote add origin https://gitee.com/用户名/仓库名.git
-
-# 6. 第一次推送，-u 绑定本地与远程分支（重点！）
-git push -u origin master
-# 如果报错提示master不存在，换成 main
-# git push -u origin main
+我是曹骏越，移动应用开发与软件测试专业学生。
+讨论组号：9
+课程目标：熟练使用Git与Gitee，独立完成项目版本控制与代码托管。
