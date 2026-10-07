@@ -1,0 +1,10 @@
+# 运行时数据库（AGENTS.md：data/ 不写入版本库）
+data/
+*.db
+
+# 作业模板下载残留（仅本地保留，不入库）
+caojunyue/
+
+# 系统/编辑器
+.DS_Store
+Thumbs.db

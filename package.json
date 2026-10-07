@@ -1,0 +1,10 @@
+{
+  "name": "equipment-booking",
+  "version": "0.1.0",
+  "private": true,
+  "description": "教务器材预约：前端单页 + Node 原生 http 后端 + SQLite（零 npm 依赖）",
+  "scripts": {
+    "start": "node --experimental-sqlite backend/server.js",
+    "db:init": "node --experimental-sqlite backend/init-db.js"
+  }
+}

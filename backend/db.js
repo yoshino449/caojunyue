@@ -1,0 +1,40 @@
+// 数据层：node:sqlite（Node ≥22 内置，启动需 --experimental-sqlite 标志，见 package.json）
+// 零 npm 依赖；数据库文件：data/equipment.db（运行时生成，不手工编辑）
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.join(__dirname, '..');
+const DATA_DIR = path.join(ROOT, 'data');
+const SCHEMA_SQL = path.join(ROOT, 'db', 'schema.sql');
+const SEED_SQL = path.join(ROOT, 'db', 'seed.sql');
+
+let db = null;
+
+function openDb() {
+  if (db) return db;
+  let DatabaseSync;
+  try {
+    ({ DatabaseSync } = require('node:sqlite'));
+  } catch (e) {
+    throw new Error('当前 Node 未启用 node:sqlite，请使用 npm start 启动（需要 --experimental-sqlite 标志，Node ≥ 22）');
+  }
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  db = new DatabaseSync(path.join(DATA_DIR, 'equipment.db'));
+  return db;
+}
+
+// 幂等初始化：建表 + 示例数据（可重复执行）
+function ensureDb() {
+  const d = openDb();
+  d.exec(fs.readFileSync(SCHEMA_SQL, 'utf8'));
+  d.exec(fs.readFileSync(SEED_SQL, 'utf8'));
+  return d;
+}
+
+function listBookings() {
+  return openDb()
+    .prepare('SELECT id, equip_id AS equipId, user, date, slot, created_at AS createdAt FROM bookings ORDER BY date, slot')
+    .all();
+}
+
+module.exports = { ensureDb, listBookings };
