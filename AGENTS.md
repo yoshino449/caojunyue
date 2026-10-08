@@ -28,7 +28,7 @@
 
 - 互斥唯一键：`equip_id + date + slot`（db/schema.sql 已建唯一索引，前端 localStorage 判重逻辑与其一致）；
 - 预约字段：equipId / user / date(YYYY-MM-DD) / slot / createdAt(毫秒)；
-- localStorage key：`equipment_bookings_v1`（v1 前端判重的事实标准；v2 判重上移服务端后迁移）。
+- 判重唯一事实源：服务端数据库唯一索引 + `POST /api/bookings` 返回 409；前端不再本地判重（v1 的 `equipment_bookings_v1` localStorage 已废弃）。
 
 ## 常用命令
 

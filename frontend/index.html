@@ -197,8 +197,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const STORAGE_KEY = 'equipment_bookings_v1';
-
   const EQUIPMENTS = [
     { id: 'projector', icon: '📽️', name: '投影仪', model: 'Epson CB-FH06' },
     { id: 'camera',    icon: '📷', name: '单反相机', model: 'Canon EOS 850D' },
@@ -206,17 +204,33 @@
   ];
 
   let currentEquipId = null;
+  let allBookings = [];   // 服务端数据缓存（含 id），每次操作后重新拉取
+  let loaded = false;
 
-  /* ---------- 存储 ---------- */
-  function loadBookings() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    } catch (e) {
-      return [];
-    }
+  /* ---------- API ---------- */
+  async function fetchBookings() {
+    const res = await fetch('/api/bookings');
+    if (!res.ok) throw new Error('加载失败');
+    allBookings = await res.json();
+    loaded = true;
+    renderCards();
   }
-  function saveBookings(list) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+
+  // 新建预约：冲突/校验失败时抛出服务端返回的错误信息
+  async function createBooking(payload) {
+    const res = await fetch('/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || '预约失败，请稍后再试');
+    return data;
+  }
+
+  async function removeBooking(id) {
+    const res = await fetch(`/api/bookings/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (res.status !== 204 && res.status !== 404) throw new Error('取消失败，请稍后再试');
   }
 
   function todayStr() {
@@ -229,11 +243,10 @@
   /* ---------- 渲染卡片 ---------- */
   function renderCards() {
     const wrap = document.getElementById('cards');
-    const all = loadBookings();
     wrap.innerHTML = '';
 
     EQUIPMENTS.forEach(eq => {
-      const mine = all
+      const mine = allBookings
         .filter(b => b.equipId === eq.id && b.date >= todayStr())
         .sort((a, b) => a.date.localeCompare(b.date));
 
@@ -242,9 +255,9 @@
 
       const listHtml = mine.length
         ? `<ul>${mine.map(b =>
-            `<li><span class="info">${b.date}　${b.slot}</span><span class="who">${escapeHtml(b.user)}</span><button type="button" class="cancel-btn">取消</button></li>`
+            `<li><span class="info">${b.date}　${b.slot}</span><span class="who">${escapeHtml(b.user)}</span><button type="button" class="cancel-btn" data-id="${b.id}">取消</button></li>`
           ).join('')}</ul>`
-        : `<div class="empty">近期暂无预约</div>`;
+        : `<div class="empty">${loaded ? '近期暂无预约' : '加载中…'}</div>`;
 
       card.innerHTML = `
         <div class="icon">${eq.icon}</div>
@@ -302,8 +315,8 @@
     t._timer = setTimeout(() => t.classList.remove('show'), 2000);
   }
 
-  /* ---------- 提交 + 判重 ---------- */
-  function submitBooking() {
+  /* ---------- 提交（判重以服务端 409 为准） ---------- */
+  async function submitBooking() {
     const user = document.getElementById('inputUser').value.trim();
     const date = document.getElementById('inputDate').value;
     const slot = document.getElementById('inputSlot').value;
@@ -313,31 +326,31 @@
     if (date < todayStr()) return showError('不能预约过去的日期');
     if (!slot) return showError('请选择预约时段');
 
-    const list = loadBookings();
-    const duplicated = list.some(b =>
-      b.equipId === currentEquipId && b.date === date && b.slot === slot
-    );
-    if (duplicated) {
-      // 同一器材同一时段重复预约 → 拒绝
-      return showError('该器材在此时段已被预约，请更换日期或时段');
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true; // 防重复点击
+    try {
+      await createBooking({ equipId: currentEquipId, user, date, slot });
+      closeModal();
+      await fetchBookings();
+      showToast('预约成功');
+    } catch (e) {
+      // 409 冲突 / 400 校验失败：留在弹窗，展示服务端返回的原因
+      showError(e.message);
+    } finally {
+      btn.disabled = false;
     }
-
-    list.push({ equipId: currentEquipId, user, date, slot, createdAt: Date.now() });
-    saveBookings(list);
-    closeModal();
-    renderCards();
-    showToast('预约成功');
   }
 
-  /* ---------- 取消预约：释放该时段，可重新预约 ---------- */
-  function cancelBooking(b) {
+  /* ---------- 取消预约：服务端删除后刷新，时段即可重新预约 ---------- */
+  async function cancelBooking(b) {
     if (!confirm(`确定取消 ${b.date} ${b.slot} 的预约吗？`)) return;
-    const list = loadBookings().filter(x =>
-      !(x.equipId === b.equipId && x.date === b.date && x.slot === b.slot)
-    );
-    saveBookings(list);
-    renderCards();
-    showToast('已取消预约');
+    try {
+      await removeBooking(b.id);
+      await fetchBookings();
+      showToast('已取消预约');
+    } catch (e) {
+      showToast(e.message);
+    }
   }
 
   /* ---------- 事件绑定 ---------- */
@@ -350,7 +363,8 @@
     if (e.key === 'Escape') closeModal();
   });
 
-  renderCards();
+  renderCards(); // 先画骨架（加载中…），数据到了再刷新
+  fetchBookings().catch(() => showToast('预约数据加载失败，请刷新重试'));
 </script>
 </body>
 </html>
