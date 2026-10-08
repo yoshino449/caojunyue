@@ -37,4 +37,28 @@ function listBookings() {
     .all();
 }
 
-module.exports = { ensureDb, listBookings };
+// 唯一约束冲突：互斥键 equip_id+date+slot 被数据库层拒绝时抛出
+class BookingConflictError extends Error {
+  constructor(message) {
+    super(message);
+    this.code = 'BOOKING_CONFLICT';
+  }
+}
+
+// 新建预约：参数化 SQL 防注入；命中 uk_equip_date_slot 唯一索引时抛 BookingConflictError
+function createBooking({ equipId, user, date, slot }) {
+  const createdAt = Date.now();
+  try {
+    const info = openDb()
+      .prepare('INSERT INTO bookings (equip_id, user, date, slot, created_at) VALUES (?, ?, ?, ?, ?)')
+      .run(equipId, user, date, slot, createdAt);
+    return { id: Number(info.lastInsertRowid), equipId, user, date, slot, createdAt };
+  } catch (e) {
+    if (String(e.code || '').includes('SQLITE_CONSTRAINT') || /UNIQUE constraint/i.test(String(e.message))) {
+      throw new BookingConflictError('该器材在此时段已被预约，请更换日期或时段');
+    }
+    throw e;
+  }
+}
+
+module.exports = { ensureDb, listBookings, createBooking, BookingConflictError };

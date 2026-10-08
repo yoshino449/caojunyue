@@ -53,12 +53,13 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 - `db/schema.sql`：bookings 表 + 唯一索引，把 PRD 的互斥规则固化到数据库层；
 - `db/seed.sql`：两条同时段、不同器材的示例预约，用于演示互斥范围（PRD AC4）。
 
-## API（骨架 v0.1）
+## API（v0.2）
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/ping`、`/api/ping` | 健康检查，返回 `ok` |
-| GET | `/api/bookings` | 返回预约列表 JSON（证明数据库打通） |
+| GET | `/api/bookings` | 返回预约列表 JSON |
+| POST | `/api/bookings` | 新建预约，JSON：`equipId/user/date/slot`；成功 `201`，入参非法 `400`，同器材同日同时段冲突 `409` |
 | GET | `/` | 静态托管前端页面 |
 
 ## 文档索引

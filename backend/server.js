@@ -4,10 +4,20 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const { ensureDb, listBookings } = require('./db');
+const { ensureDb, listBookings, createBooking, BookingConflictError } = require('./db');
 
 const PORT = 3000;
 const FRONTEND_DIR = path.resolve(__dirname, '..', 'frontend');
+
+// 合法取值与前端 index.html 保持一致（服务端再校一遍，不信前端）
+const EQUIP_IDS = ['projector', 'camera', 'speaker'];
+const SLOTS = [
+  '第1-2节 08:00-09:35',
+  '第3-4节 10:00-11:35',
+  '第5-6节 14:00-15:35',
+  '第7-8节 16:00-17:35',
+  '晚间 19:00-21:00'
+];
 
 // 简易 MIME 表（静态托管用）
 const MIME = {
@@ -25,6 +35,57 @@ function send(res, status, body, type = 'text/plain; charset=utf-8') {
   res.end(body);
 }
 
+function sendJson(res, status, obj) {
+  send(res, status, JSON.stringify(obj), 'application/json; charset=utf-8');
+}
+
+// 读取并解析 JSON 请求体（限制 8KB，防大包）
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on('data', chunk => {
+      size += chunk.length;
+      if (size > 8 * 1024) {
+        reject(new Error('请求体过大'));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'));
+      } catch (e) {
+        reject(new Error('JSON 格式错误'));
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+function todayStr() {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+// 预约入参校验：返回 trim 后的字段；不合法返回错误信息
+function validateBooking(input) {
+  const equipId = String(input.equipId || '').trim();
+  const user = String(input.user || '').trim();
+  const date = String(input.date || '').trim();
+  const slot = String(input.slot || '').trim();
+  if (!EQUIP_IDS.includes(equipId)) return { error: '器材标识不合法' };
+  if (!user) return { error: '请填写预约人姓名' };
+  if (user.length > 20) return { error: '预约人姓名最长 20 个字' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) return { error: '日期格式不合法' };
+  if (date < todayStr()) return { error: '不能预约过去的日期' };
+  if (!SLOTS.includes(slot)) return { error: '时段不合法' };
+  return { value: { equipId, user, date, slot } };
+}
+
 const server = http.createServer((req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost');
 
@@ -33,9 +94,27 @@ const server = http.createServer((req, res) => {
     return send(res, 200, 'ok');
   }
 
-  // 预约列表：证明数据库已打通；v2 在此扩展判重写入 POST /api/bookings
+  // 预约列表
   if (req.method === 'GET' && pathname === '/api/bookings') {
     return send(res, 200, JSON.stringify(listBookings()), 'application/json; charset=utf-8');
+  }
+
+  // 新建预约：校验 → 写入；唯一索引冲突 → 409（互斥规则在数据库层兜底）
+  if (req.method === 'POST' && pathname === '/api/bookings') {
+    return readJsonBody(req)
+      .then(input => {
+        const checked = validateBooking(input);
+        if (checked.error) return sendJson(res, 400, { error: checked.error });
+        try {
+          const created = createBooking(checked.value);
+          return sendJson(res, 201, created);
+        } catch (e) {
+          if (e instanceof BookingConflictError) return sendJson(res, 409, { error: e.message });
+          console.error(e);
+          return sendJson(res, 500, { error: '服务器内部错误' });
+        }
+      })
+      .catch(err => sendJson(res, 400, { error: err.message }));
   }
 
   // 静态托管 frontend/
