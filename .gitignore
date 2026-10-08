@@ -5,6 +5,9 @@ data/
 # 作业模板下载残留（仅本地保留，不入库）
 caojunyue/
 
+# 推拉练习用的本地克隆（不入库）
+myrepo-clone/
+
 # 系统/编辑器
 .DS_Store
 Thumbs.db
