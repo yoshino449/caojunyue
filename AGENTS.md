@@ -15,13 +15,15 @@
 | `backend/` | Node 原生 http 服务 | server.js 入口、db.js 数据层、init-db.js 初始化 |
 | `db/` | SQL 脚本 | schema.sql 建表、seed.sql 示例；表结构变更必须同步技术方案 |
 | `data/` | 运行时 SQLite 文件 | 自动生成，不手工编辑、不写入版本库 |
+| `functions/` | Cloudflare Pages Functions（ESM） | 线上部署适配层；本地 `npm start` 不依赖；与 `backend/` 并列、互不替换（详见技术方案 §11） |
 
 ## 技术栈约束（改动前先更新本文件与 docs/技术方案.md）
 
 - 后端：Node ≥ 22 原生 `http` 模块，**禁止引入 Express/Koa 等框架**（v2 再议）；
 - 数据库：内置 `node:sqlite`，启动带 `--experimental-sqlite` 标志（见 package.json scripts），**禁止引入第三方 ORM / 数据库驱动**；
-- 模块规范：CommonJS（require / module.exports）；
+- 模块规范：`backend/` 用 CommonJS（require / module.exports）；`functions/` 子树用 ESM 是 Cloudflare Pages Functions 运行时硬性要求，二者互不混用；
 - 依赖策略：保持零 npm 依赖；确需新增时必须在 README 说明理由并经用户确认；
+- 部署适配：本地开发走 `backend/` + `node:sqlite`（`npm start`）；线上 Cloudflare 部署走 `functions/` + D1 binding（`env.DB`，平台注入非 npm 包，不算引入第三方 ORM / 数据库驱动）；详见技术方案 §11；
 - 注释、文档、提交信息一律中文。
 
 ## 数据契约
