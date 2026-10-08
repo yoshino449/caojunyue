@@ -79,4 +79,14 @@ function getStats() {
   return { perEquip, perSlot };
 }
 
-module.exports = { ensureDb, listBookings, createBooking, deleteBooking, getStats, BookingConflictError };
+// 访问统计（T2）：单行计数器自增与读取；schema.sql 建表时已初始化 id=1,count=0
+function incrementVisits() {
+  openDb().prepare('UPDATE visits SET count = count + 1 WHERE id = 1').run();
+}
+
+function getVisits() {
+  const row = openDb().prepare('SELECT count FROM visits WHERE id = 1').get();
+  return { count: row ? row.count : 0 };
+}
+
+module.exports = { ensureDb, listBookings, createBooking, deleteBooking, getStats, incrementVisits, getVisits, BookingConflictError };

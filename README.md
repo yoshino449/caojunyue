@@ -26,8 +26,9 @@ vibe-lab1/
 │   ├── schema.sql     建表 + 唯一索引（互斥键 equip_id+date+slot）
 │   └── seed.sql       示例数据（幂等）
 ├── data/              运行时生成的 SQLite 文件（equipment.db）
-├── docs/              PRD / 技术方案 / 任务看板
-├── package.json       scripts：start、db:init
+├── docs/              PRD / 技术方案 / 任务看板 / 部署手册
+├── package.json       scripts：start、db:init；engines.node ≥ 22
+├── render.yaml        Render Blueprint（声明式部署配置）
 ├── README.md
 └── AGENTS.md          AI 编码代理协作规范
 ```
@@ -60,6 +61,7 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 | GET | `/ping`、`/api/ping` | 健康检查，返回 `ok` |
 | GET | `/api/bookings` | 返回预约列表 JSON |
 | GET | `/api/stats` | 返回预约聚合统计 JSON（`perEquip` 各器材计数、`perSlot` 各时段计数），供前端图表渲染 |
+| GET | `/api/visits` | 返回页面访问计数 JSON（`{count}`），访问根页面时自增 |
 | POST | `/api/bookings` | 新建预约，JSON：`equipId/user/date/slot`；成功 `201`，入参非法 `400`，同器材同日同时段冲突 `409` |
 | DELETE | `/api/bookings/:id` | 取消预约（删除记录、释放时段）；成功 `204`，记录不存在 `404` |
 | GET | `/` | 静态托管前端页面 |
@@ -81,11 +83,21 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 3. **CDN 可用性**：jsdelivr 在个别网络环境被墙。对策：`openStats()` 先判 `typeof Chart === 'undefined'`，未就绪时 toast 提示并阻止打开，不阻塞主预约流程。
 4. **聚合时机**：每次打开统计弹窗都重新 fetch `/api/stats`（不缓存），保证新增/取消预约后数字实时变化。
 
+## 部署（T2：Render 免费层）
+
+线上部署到 Render，拿到 `*.onrender.com` 子域名，教师手机可开。端口走 `process.env.PORT` 环境变量；启动幂等建库+seed，免费层 ephemeral 重启后自动自愈；页脚展示自建访问计数。
+
+- **完整步骤与坑在哪**：[docs/部署手册.md](docs/部署手册.md)（写给下届学生，含字段表、验收、避雷清单）
+- **声明式配置**：仓库根 [`render.yaml`](render.yaml)（Web Service / Node / Free / healthCheck `/ping`）
+- **唯一硬性代码改动**：`server.js` 的 `PORT = process.env.PORT || 3000`
+- **已知限制**：免费层 15 分钟休眠、重启清库（预约数据回 seed、访问计数归零），不修（持久化需付费，超出 T2 范围）
+
 ## 文档索引
 
 - [docs/PRD.md](docs/PRD.md) — 需求与验收标准（AC1–AC8）
 - [docs/技术方案.md](docs/技术方案.md) — 架构与选型
 - [docs/任务看板.md](docs/任务看板.md) — 任务拆解与状态
+- [docs/部署手册.md](docs/部署手册.md) — Render 部署步骤与坑（T2）
 - [AGENTS.md](AGENTS.md) — AI 编码代理协作规范
 
 ## 已知限制

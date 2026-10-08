@@ -1,0 +1,13 @@
+# Render Blueprint（T2：首次部署）
+# 仓库根的声明式配置；也可在 Render 网页手动配置（字段一致）。
+# 详见 docs/部署手册.md
+services:
+  - type: web
+    name: caojunyue
+    runtime: node
+    branch: main
+    plan: free
+    buildCommand: ""        # 零 npm 依赖，无需 install；留空即可
+    startCommand: "node --experimental-sqlite backend/server.js"
+    healthCheckPath: /ping
+    autoDeploy: true

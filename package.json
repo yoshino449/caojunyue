@@ -6,5 +6,8 @@
   "scripts": {
     "start": "node --experimental-sqlite backend/server.js",
     "db:init": "node --experimental-sqlite backend/init-db.js"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

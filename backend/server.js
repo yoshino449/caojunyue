@@ -4,9 +4,9 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const { ensureDb, listBookings, createBooking, deleteBooking, getStats, BookingConflictError } = require('./db');
+const { ensureDb, listBookings, createBooking, deleteBooking, getStats, incrementVisits, getVisits, BookingConflictError } = require('./db');
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;   // Render 注入 PORT 环境变量；本地默认 3000
 const FRONTEND_DIR = path.resolve(__dirname, '..', 'frontend');
 
 // 合法取值与前端 index.html 保持一致（服务端再校一遍，不信前端）
@@ -104,6 +104,11 @@ const server = http.createServer((req, res) => {
     return send(res, 200, JSON.stringify(getStats()), 'application/json; charset=utf-8');
   }
 
+  // 访问统计（T2）：返回当前页面访问计数
+  if (req.method === 'GET' && pathname === '/api/visits') {
+    return send(res, 200, JSON.stringify(getVisits()), 'application/json; charset=utf-8');
+  }
+
   // 新建预约：校验 → 写入；唯一索引冲突 → 409（互斥规则在数据库层兜底）
   if (req.method === 'POST' && pathname === '/api/bookings') {
     return readJsonBody(req)
@@ -131,12 +136,16 @@ const server = http.createServer((req, res) => {
       : sendJson(res, 404, { error: '预约不存在' });
   }
 
-  // 静态托管 frontend/
+  // 静态托管 frontend/；访问根页面（GET /）时计一次访问数（不计静态资源与 API）
   if (req.method === 'GET') {
-    const rel = pathname === '/' ? 'index.html' : pathname.slice(1);
+    const isRoot = pathname === '/';
+    const rel = isRoot ? 'index.html' : pathname.slice(1);
     const fp = path.resolve(FRONTEND_DIR, rel);
     if (fp !== FRONTEND_DIR && !fp.startsWith(FRONTEND_DIR + path.sep)) {
       return send(res, 403, 'Forbidden'); // 防目录穿越
+    }
+    if (isRoot) {
+      try { incrementVisits(); } catch (e) { console.error('访问计数失败', e); }
     }
     fs.readFile(fp, (err, data) => {
       if (err) return send(res, 404, 'Not Found');

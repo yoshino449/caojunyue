@@ -10,3 +10,11 @@ CREATE TABLE IF NOT EXISTS bookings (
 
 CREATE UNIQUE INDEX IF NOT EXISTS uk_equip_date_slot
   ON bookings (equip_id, date, slot);
+
+-- 访问计数表（T2：访问统计）；单行计数器，id 固定为 1
+CREATE TABLE IF NOT EXISTS visits (
+  id    INTEGER PRIMARY KEY CHECK (id = 1),
+  count INTEGER NOT NULL DEFAULT 0
+);
+INSERT OR IGNORE INTO visits (id, count) VALUES (1, 0);
+
