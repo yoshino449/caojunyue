@@ -86,14 +86,15 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 3. **CDN 可用性**：jsdelivr 在个别网络环境被墙。对策：`openStats()` 先判 `typeof Chart === 'undefined'`，未就绪时 toast 提示并阻止打开，不阻塞主预约流程。
 4. **聚合时机**：每次打开统计弹窗都重新 fetch `/api/stats`（不缓存），保证新增/取消预约后数字实时变化。
 
-## 部署（T2：Sealos DevBox）
+## 部署（T2：Render）
 
-线上部署到 Sealos DevBox（国内容器平台 cloud.sealos.io，国内可直连；render.com/zeabur.com 国内打不开故弃用），拿到 `*.sealos.io` 子域名，教师手机可开。Sealos「应用管理 → 新建应用」只接受镜像名不接受源码；**源码部署走另一个入口「DevBox」**——云端开发环境 + 一键发布为正式应用，用仓库根 [`entrypoint.sh`](entrypoint.sh) 作为 OCI 镜像入口点，**不用本地装 Docker、不用 Dockerfile、不用 GitHub 镜像**（DevBox WebIDE 内直接 `git clone` 自己的 Gitee 仓库）。端口走 `process.env.PORT`；启动幂等建库+seed，容器重启后自动自愈；页脚展示自建访问计数。
+线上部署到 Render（render.com，国内可直连；Free 计划 $0/月，750 小时/月够单实例 24×7 跑满），拿到 `*.onrender.com` 子域名，教师手机可开。**为什么换 Render**：之前用 Sealos DevBox，但 cloud.sealos.io 改版后实际页面与教程差距大、登录与创建项目环节卡住过不去；Render 实测国内可直连、登录方式简单（GitHub/Google/邮箱，无需实名）、流程最稳。仓库已有 [`render.yaml`](render.yaml) 声明式配置 + Node 默认 24（满足 `node:sqlite` 所需 ≥22）+ `process.env.PORT` 已适配，**代码一行不改**。启动幂等建库+seed，容器重启后自动自愈；页脚展示自建访问计数。
 
-- **完整步骤与坑在哪**：[docs/部署手册.md](docs/部署手册.md)（写给下届学生，含 DevBox 字段表、WebIDE 流程、验收、避雷清单、镜像部署附录）
+- **完整步骤与坑在哪**：[docs/部署手册.md](docs/部署手册.md)（写给下届学生，含字段表、验收、避雷清单、Blueprint/Dockerfile/Sealos 三附录）
 - **唯一硬性代码改动**：`server.js` 的 `PORT = process.env.PORT || 3000`（容器化不改代码）
-- **其他备选**：仓库根 [`Dockerfile`](Dockerfile) 留作 Sealos 应用管理镜像部署备选；[`render.yaml`](render.yaml) 留作 Render/Zeabur 备选（均需梯子或镜像仓库，见手册附录 A/B/C）
-- **已知限制**：免费额度/容器重启清库（预约数据回 seed、访问计数归零），不修（持久化需挂持久卷，超出 T2 范围）
+- **前置**：Render 只接 GitHub/GitLab/Bitbucket，不接 Gitee，需先把仓库镜像到 GitHub（手册 §1.2 有 GitHub Import 流程，不敲命令）
+- **其他备选**：仓库根 [`Dockerfile`](Dockerfile) 留作 Render Docker runtime 部署备选（绕过 Node runtime 版本不确定性）；[`entrypoint.sh`](entrypoint.sh) 留作 Sealos DevBox 备选（cloud.sealos.io 改版后流程不匹配，仅作记录）
+- **已知限制**：免费层 15 分钟无请求会休眠（唤醒需 30~60 秒）；重启清库（预约数据回 seed、访问计数归零），不修（持久化需付费挂持久卷，超出 T2 范围）
 
 ## 文档索引
 
