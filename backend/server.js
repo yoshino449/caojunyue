@@ -4,7 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const { ensureDb, listBookings, createBooking, deleteBooking, BookingConflictError } = require('./db');
+const { ensureDb, listBookings, createBooking, deleteBooking, getStats, BookingConflictError } = require('./db');
 
 const PORT = 3000;
 const FRONTEND_DIR = path.resolve(__dirname, '..', 'frontend');
@@ -97,6 +97,11 @@ const server = http.createServer((req, res) => {
   // 预约列表
   if (req.method === 'GET' && pathname === '/api/bookings') {
     return send(res, 200, JSON.stringify(listBookings()), 'application/json; charset=utf-8');
+  }
+
+  // 预约统计：两条聚合查询，供前端 Chart.js 图表渲染
+  if (req.method === 'GET' && pathname === '/api/stats') {
+    return send(res, 200, JSON.stringify(getStats()), 'application/json; charset=utf-8');
   }
 
   // 新建预约：校验 → 写入；唯一索引冲突 → 409（互斥规则在数据库层兜底）

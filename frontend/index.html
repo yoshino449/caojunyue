@@ -152,13 +152,37 @@
     transition: all .25s;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 统计入口与弹窗（T1：Chart.js 接入） */
+  header { position: relative; }
+  .stats-btn {
+    position: absolute;
+    top: 30px;
+    right: 24px;
+    padding: 6px 14px;
+    font-size: 13px;
+    border: 1px solid #d8dade;
+    background: #fff;
+    color: #41464d;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .stats-btn:hover { background: #f2f3f5; }
+
+  .modal-stats { max-width: 420px; }
+  .chart-block { margin-top: 18px; }
+  .chart-title { font-size: 13px; color: #646a73; margin-bottom: 6px; }
+  .chart-wrap { position: relative; height: 220px; }   /* 固定高度配 maintainAspectRatio:false，防拉伸 */
+  .stats-empty { font-size: 13px; color: #b6bac0; text-align: center; padding: 20px 0; }
 </style>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
 
 <header>
   <h1>教务器材预约</h1>
   <p>选择器材、日期与时段，同一器材同一时段不可重复预约</p>
+  <button type="button" class="stats-btn" id="btnStats">📊 统计</button>
 </header>
 
 <main class="cards" id="cards"></main>
@@ -195,6 +219,24 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- 统计弹窗（T1：Chart.js） -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal modal-stats">
+    <h3>预约统计</h3>
+    <div class="chart-block">
+      <div class="chart-title">各器材预约量</div>
+      <div class="chart-wrap"><canvas id="chartEquip"></canvas></div>
+    </div>
+    <div class="chart-block">
+      <div class="chart-title">各时段热度</div>
+      <div class="chart-wrap"><canvas id="chartSlot"></canvas></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-primary" id="btnStatsClose">关闭</button>
+    </div>
+  </div>
+</div>
 
 <script>
   const EQUIPMENTS = [
@@ -353,14 +395,70 @@
     }
   }
 
+  /* ---------- 预约统计（T1：Chart.js） ---------- */
+  let chartEquip = null, chartSlot = null;
+
+  function openStats() {
+    if (typeof Chart === 'undefined') {
+      showToast('统计组件加载失败，请检查网络');
+      return;
+    }
+    document.getElementById('statsOverlay').classList.add('show');
+    loadStats();
+  }
+
+  function closeStats() {
+    document.getElementById('statsOverlay').classList.remove('show');
+    if (chartEquip) { chartEquip.destroy(); chartEquip = null; }   // 关闭即销毁，防 canvas 复用报错
+    if (chartSlot) { chartSlot.destroy(); chartSlot = null; }
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/stats');
+      if (!res.ok) throw new Error('统计加载失败');
+      const data = await res.json();
+
+      // 柱状图：各器材预约量（按固定器材顺序补 0，保证三台都出现）
+      const equipLabels = EQUIPMENTS.map(e => e.name);
+      const equipData = EQUIPMENTS.map(e => {
+        const row = data.perEquip.find(r => r.equipId === e.id);
+        return row ? row.count : 0;
+      });
+      if (chartEquip) chartEquip.destroy();
+      chartEquip = new Chart(document.getElementById('chartEquip'), {
+        type: 'bar',
+        data: { labels: equipLabels, datasets: [{ label: '预约量', data: equipData, backgroundColor: '#3370ff' }] },
+        options: { maintainAspectRatio: false, responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+      });
+
+      // 饼图：各时段热度
+      if (chartSlot) chartSlot.destroy();
+      chartSlot = new Chart(document.getElementById('chartSlot'), {
+        type: 'doughnut',
+        data: { labels: data.perSlot.map(r => r.slot), datasets: [{ data: data.perSlot.map(r => r.count), backgroundColor: ['#3370ff', '#4ca6ff', '#ffce5c', '#ff9f5c', '#a877ff'] }] },
+        options: { maintainAspectRatio: false, responsive: true, plugins: { legend: { position: 'right' } } }
+      });
+    } catch (e) {
+      showToast(e.message);
+    }
+  }
+
   /* ---------- 事件绑定 ---------- */
   document.getElementById('btnSubmit').addEventListener('click', submitBooking);
   document.getElementById('btnCancel').addEventListener('click', closeModal);
   document.getElementById('overlay').addEventListener('click', e => {
     if (e.target.id === 'overlay') closeModal();
   });
+  document.getElementById('btnStats').addEventListener('click', openStats);
+  document.getElementById('btnStatsClose').addEventListener('click', closeStats);
+  document.getElementById('statsOverlay').addEventListener('click', e => {
+    if (e.target.id === 'statsOverlay') closeStats();
+  });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape') { closeModal(); closeStats(); }
   });
 
   renderCards(); // 先画骨架（加载中…），数据到了再刷新

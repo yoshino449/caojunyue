@@ -59,13 +59,31 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 |---|---|---|
 | GET | `/ping`、`/api/ping` | 健康检查，返回 `ok` |
 | GET | `/api/bookings` | 返回预约列表 JSON |
+| GET | `/api/stats` | 返回预约聚合统计 JSON（`perEquip` 各器材计数、`perSlot` 各时段计数），供前端图表渲染 |
 | POST | `/api/bookings` | 新建预约，JSON：`equipId/user/date/slot`；成功 `201`，入参非法 `400`，同器材同日同时段冲突 `409` |
 | DELETE | `/api/bookings/:id` | 取消预约（删除记录、释放时段）；成功 `204`，记录不存在 `404` |
 | GET | `/` | 静态托管前端页面 |
 
+## 开源组件接入：Chart.js（T1）
+
+页面右上角「📊 统计」按钮打开统计弹窗，用柱状图展示各器材预约量、饼图展示各时段热度，数据来自服务端 `GET /api/stats` 聚合查询。
+
+**怎么接的**
+
+- head 引入 `<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4">`，CDN 直连、零构建、零 npm 依赖（不破坏 AGENTS.md「不引框架/构建链」约束）；
+- 后端 `db.js#getStats()` 两条 `GROUP BY` 聚合（按器材、按时段），聚合走服务端、前端不做计算；
+- 前端 `loadStats()` fetch 后 `new Chart(canvas, {...})`，柱状 `type:'bar'`、饼图 `type:'doughnut'`；模块级缓存 chart 实例。
+
+**坑在哪**
+
+1. **canvas 复用报错**：同一 canvas 再次 `new Chart()` 抛 "Canvas is already in use"。对策：关闭弹窗时先 `.destroy()` 旧实例再置 null，重开时重建。
+2. **图表拉伸**：默认 `maintainAspectRatio:true` 会让图随容器宽度无限拉高。对策：`maintainAspectRatio:false` + 父容器 `.chart-wrap{height:220px}` 固定高度。
+3. **CDN 可用性**：jsdelivr 在个别网络环境被墙。对策：`openStats()` 先判 `typeof Chart === 'undefined'`，未就绪时 toast 提示并阻止打开，不阻塞主预约流程。
+4. **聚合时机**：每次打开统计弹窗都重新 fetch `/api/stats`（不缓存），保证新增/取消预约后数字实时变化。
+
 ## 文档索引
 
-- [docs/PRD.md](docs/PRD.md) — 需求与验收标准（AC1–AC7）
+- [docs/PRD.md](docs/PRD.md) — 需求与验收标准（AC1–AC8）
 - [docs/技术方案.md](docs/技术方案.md) — 架构与选型
 - [docs/任务看板.md](docs/任务看板.md) — 任务拆解与状态
 - [AGENTS.md](AGENTS.md) — AI 编码代理协作规范

@@ -67,4 +67,16 @@ function deleteBooking(id) {
   return info.changes > 0;
 }
 
-module.exports = { ensureDb, listBookings, createBooking, deleteBooking, BookingConflictError };
+// 预约统计：两条聚合查询，供前端图表渲染（聚合走服务端，前端不做计算）
+function getStats() {
+  const d = openDb();
+  const perEquip = d
+    .prepare('SELECT equip_id AS equipId, COUNT(*) AS count FROM bookings GROUP BY equip_id')
+    .all();
+  const perSlot = d
+    .prepare('SELECT slot, COUNT(*) AS count FROM bookings GROUP BY slot')
+    .all();
+  return { perEquip, perSlot };
+}
+
+module.exports = { ensureDb, listBookings, createBooking, deleteBooking, getStats, BookingConflictError };
