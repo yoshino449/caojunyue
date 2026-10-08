@@ -60,6 +60,7 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 | GET | `/ping`、`/api/ping` | 健康检查，返回 `ok` |
 | GET | `/api/bookings` | 返回预约列表 JSON |
 | POST | `/api/bookings` | 新建预约，JSON：`equipId/user/date/slot`；成功 `201`，入参非法 `400`，同器材同日同时段冲突 `409` |
+| DELETE | `/api/bookings/:id` | 取消预约（删除记录、释放时段）；成功 `204`，记录不存在 `404` |
 | GET | `/` | 静态托管前端页面 |
 
 ## 文档索引

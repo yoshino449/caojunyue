@@ -4,7 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const { ensureDb, listBookings, createBooking, BookingConflictError } = require('./db');
+const { ensureDb, listBookings, createBooking, deleteBooking, BookingConflictError } = require('./db');
 
 const PORT = 3000;
 const FRONTEND_DIR = path.resolve(__dirname, '..', 'frontend');
@@ -115,6 +115,15 @@ const server = http.createServer((req, res) => {
         }
       })
       .catch(err => sendJson(res, 400, { error: err.message }));
+  }
+
+  // 取消预约：删除成功 204；id 不存在 / 非正整数 → 404
+  if (req.method === 'DELETE' && pathname.startsWith('/api/bookings/')) {
+    const id = Number(pathname.slice('/api/bookings/'.length));
+    if (!Number.isInteger(id) || id <= 0) return sendJson(res, 404, { error: '预约不存在' });
+    return deleteBooking(id)
+      ? send(res, 204, '')
+      : sendJson(res, 404, { error: '预约不存在' });
   }
 
   // 静态托管 frontend/

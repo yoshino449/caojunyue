@@ -61,4 +61,10 @@ function createBooking({ equipId, user, date, slot }) {
   }
 }
 
-module.exports = { ensureDb, listBookings, createBooking, BookingConflictError };
+// 取消预约：按 id 删除，返回是否真的删到了（false → 路由层 404）
+function deleteBooking(id) {
+  const info = openDb().prepare('DELETE FROM bookings WHERE id = ?').run(id);
+  return info.changes > 0;
+}
+
+module.exports = { ensureDb, listBookings, createBooking, deleteBooking, BookingConflictError };
