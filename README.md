@@ -28,7 +28,9 @@ vibe-lab1/
 ├── data/              运行时生成的 SQLite 文件（equipment.db）
 ├── docs/              PRD / 技术方案 / 任务看板 / 部署手册
 ├── package.json       scripts：start、db:init；engines.node ≥ 22
-├── render.yaml        Render Blueprint（声明式部署配置）
+├── Dockerfile         容器镜像（Sealos 部署用，node:22-slim）
+├── .dockerignore      排除 data/、node_modules、.git 等
+├── render.yaml        Render Blueprint（Render/Zeabur 备选配置）
 ├── README.md
 └── AGENTS.md          AI 编码代理协作规范
 ```
@@ -83,14 +85,14 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 3. **CDN 可用性**：jsdelivr 在个别网络环境被墙。对策：`openStats()` 先判 `typeof Chart === 'undefined'`，未就绪时 toast 提示并阻止打开，不阻塞主预约流程。
 4. **聚合时机**：每次打开统计弹窗都重新 fetch `/api/stats`（不缓存），保证新增/取消预约后数字实时变化。
 
-## 部署（T2：Zeabur 免费档）
+## 部署（T2：Sealos 容器）
 
-线上部署到 Zeabur（亚洲团队、`*.zeabur.app` 域名国内可直连；render.com 国内打不开故不用），拿到子域名，教师手机可开。端口走 `process.env.PORT` 环境变量；启动幂等建库+seed，免费档重启后自动自愈；页脚展示自建访问计数。
+线上部署到 Sealos（国内容器平台 cloud.sealos.io，国内可直连；render.com/zeabur.com 国内打不开故弃用），拿到 `*.sealos.io` 子域名，教师手机可开。代码不改，仓库根 [`Dockerfile`](Dockerfile) 容器化；端口走 `process.env.PORT`；启动幂等建库+seed，容器重启后自动自愈；页脚展示自建访问计数。
 
 - **完整步骤与坑在哪**：[docs/部署手册.md](docs/部署手册.md)（写给下届学生，含字段表、验收、Gitee→GitHub 镜像、避雷清单）
-- **唯一硬性代码改动**：`server.js` 的 `PORT = process.env.PORT || 3000`
-- **声明式配置**：仓库根 [`render.yaml`](render.yaml) 留作 Render 备选（需梯子，见手册附录 B）；Zeabur 走控制台配置
-- **已知限制**：免费档有用量上限/休眠、重启清库（预约数据回 seed、访问计数归零），不修（持久化需付费，超出 T2 范围）
+- **唯一硬性代码改动**：`server.js` 的 `PORT = process.env.PORT || 3000`（容器化不改代码）
+- **其他备选**：仓库根 [`render.yaml`](render.yaml) 留作 Render/Zeabur 备选（需梯子，见手册附录 B）
+- **已知限制**：免费额度/容器重启清库（预约数据回 seed、访问计数归零），不修（持久化需挂持久卷，超出 T2 范围）
 
 ## 文档索引
 
