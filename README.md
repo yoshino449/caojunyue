@@ -86,22 +86,27 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 3. **CDN 可用性**：jsdelivr 在个别网络环境被墙。对策：`openStats()` 先判 `typeof Chart === 'undefined'`，未就绪时 toast 提示并阻止打开，不阻塞主预约流程。
 4. **聚合时机**：每次打开统计弹窗都重新 fetch `/api/stats`（不缓存），保证新增/取消预约后数字实时变化。
 
-## 部署（T2：Render）
+## 部署（T2：Cloudflare Pages + Functions + D1）
 
-线上部署到 Render（render.com，国内可直连；Free 计划 $0/月，750 小时/月够单实例 24×7 跑满），拿到 `*.onrender.com` 子域名，教师手机可开。**为什么换 Render**：之前用 Sealos DevBox，但 cloud.sealos.io 改版后实际页面与教程差距大、登录与创建项目环节卡住过不去；Render 实测国内可直连、登录方式简单（GitHub/Google/邮箱，无需实名）、流程最稳。仓库已有 [`render.yaml`](render.yaml) 声明式配置 + Node 默认 24（满足 `node:sqlite` 所需 ≥22）+ `process.env.PORT` 已适配，**代码一行不改**。启动幂等建库+seed，容器重启后自动自愈；页脚展示自建访问计数。
+线上部署到 Cloudflare Pages（pages.dev，国内可直连、Free 计划 $0/月、无需信用卡、GitHub OAuth 注册），拿到 `https://caojunyue.pages.dev/` 子域名，教师手机可开。**为什么用 Cloudflare**：Render 免费层 15 分钟无请求会休眠、重启清库（预约数据回 seed、访问计数归零）；Cloudflare Pages Functions 边缘运行 + D1 数据库持久化，无休眠、数据不丢、`/api/bookings` 真实落库。架构：`frontend/` 静态托管 + `functions/` 子树（ESM，Pages Functions 运行时硬性要求，与 `backend/` CommonJS 互不混用）+ D1 binding `DB`（平台注入，非 npm 包，不算引入第三方驱动）。
 
-- **完整步骤与坑在哪**：[docs/部署手册.md](docs/部署手册.md)（写给下届学生，含字段表、验收、避雷清单、Blueprint/Dockerfile/Sealos 三附录）
-- **唯一硬性代码改动**：`server.js` 的 `PORT = process.env.PORT || 3000`（容器化不改代码）
-- **前置**：Render 只接 GitHub/GitLab/Bitbucket，不接 Gitee，需先把仓库镜像到 GitHub（手册 §1.2 有 GitHub Import 流程，不敲命令）
-- **其他备选**：仓库根 [`Dockerfile`](Dockerfile) 留作 Render Docker runtime 部署备选（绕过 Node runtime 版本不确定性）；[`entrypoint.sh`](entrypoint.sh) 留作 Sealos DevBox 备选（cloud.sealos.io 改版后流程不匹配，仅作记录）
-- **已知限制**：免费层 15 分钟无请求会休眠（唤醒需 30~60 秒）；重启清库（预约数据回 seed、访问计数归零），不修（持久化需付费挂持久卷，超出 T2 范围）
+- **线上域名**：https://caojunyue.pages.dev/
+- **D1 database_id**：`7f76097a-2ced-418c-8862-1d7cb99767cd`
+- **完整步骤与坑在哪**：[docs/部署手册.md](docs/部署手册.md)（写给下届学生，含字段表、验收、避雷清单）
+- **架构说明**：[docs/技术方案.md §11](docs/技术方案.md)（双轨架构：本地 `npm start` + `backend/` CommonJS / 线上 `functions/` ESM + D1 binding，二者并列互不替换）
+- **关键文件**：[`wrangler.toml`](wrangler.toml)（D1 binding 声明，本地 `npm start` 不依赖）；[`functions/`](functions/) 子树 8 个文件（_lib/queries.js + index.js + ping.js + api/{ping,stats,visits}.js + api/bookings/{index,[id]}.js）
+- **前置**：Cloudflare 只接 GitHub/GitLab/Bitbucket，不接 Gitee，需先把仓库镜像到 GitHub（手册 §1.2 有 GitHub Import 流程，不敲命令）
+- **本地 vs 线上**：本地走 `backend/` + `node:sqlite`（CommonJS、`npm start`、http://localhost:3000），线上走 `functions/` + D1 binding `DB`（ESM、Cloudflare Pages Functions 运行时），两条路径互不替换；前端 `frontend/index.html` 通过相对路径 `/api/*` 调用，本地与线上同代码无需切换
+- **验收 5 个 URL**：`/` 三张卡片+页脚访问计数；`/ping` 与 `/api/ping` 返回 `ok`；`/api/bookings` 返回 JSON 数组（含 seed 2 条）；`/api/visits` 返回 `{"count":N}`
+- **已知限制**：D1 免费层 5GB 存储 + 500 万行读/天 + 10 万行写/天（T2 单机演示足够）；`functions/` 子树 ESM 是 Cloudflare Pages Functions 运行时硬性要求，已与 `backend/` CommonJS 隔离，不破坏 AGENTS.md「`backend/` 用 CommonJS」约束
+- **历史备选**：仓库根 [`render.yaml`](render.yaml) / [`Dockerfile`](Dockerfile) / [`entrypoint.sh`](entrypoint.sh) 为 Render / Sealos DevBox 备选（实测 Render 免费层休眠 + 重启清库，Sealos cloud.sealos.io 改版后流程不匹配，均已降为备选）
 
 ## 文档索引
 
 - [docs/PRD.md](docs/PRD.md) — 需求与验收标准（AC1–AC8）
 - [docs/技术方案.md](docs/技术方案.md) — 架构与选型
 - [docs/任务看板.md](docs/任务看板.md) — 任务拆解与状态
-- [docs/部署手册.md](docs/部署手册.md) — Sealos DevBox 部署步骤与坑（T2）
+- [docs/部署手册.md](docs/部署手册.md) — Cloudflare Pages + Functions + D1 部署步骤与坑（T2）
 - [AGENTS.md](AGENTS.md) — AI 编码代理协作规范
 
 ## 已知限制
