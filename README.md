@@ -28,7 +28,8 @@ vibe-lab1/
 ├── data/              运行时生成的 SQLite 文件（equipment.db）
 ├── docs/              PRD / 技术方案 / 任务看板 / 部署手册
 ├── package.json       scripts：start、db:init；engines.node ≥ 22
-├── Dockerfile         容器镜像（Sealos 部署用，node:22-slim）
+├── entrypoint.sh      Sealos DevBox 发布为正式应用时的 OCI 镜像入口点
+├── Dockerfile         容器镜像（Sealos 应用管理 镜像部署备选用，node:22-slim）
 ├── .dockerignore      排除 data/、node_modules、.git 等
 ├── render.yaml        Render Blueprint（Render/Zeabur 备选配置）
 ├── README.md
@@ -85,13 +86,13 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 3. **CDN 可用性**：jsdelivr 在个别网络环境被墙。对策：`openStats()` 先判 `typeof Chart === 'undefined'`，未就绪时 toast 提示并阻止打开，不阻塞主预约流程。
 4. **聚合时机**：每次打开统计弹窗都重新 fetch `/api/stats`（不缓存），保证新增/取消预约后数字实时变化。
 
-## 部署（T2：Sealos 容器）
+## 部署（T2：Sealos DevBox）
 
-线上部署到 Sealos（国内容器平台 cloud.sealos.io，国内可直连；render.com/zeabur.com 国内打不开故弃用），拿到 `*.sealos.io` 子域名，教师手机可开。代码不改，仓库根 [`Dockerfile`](Dockerfile) 容器化；端口走 `process.env.PORT`；启动幂等建库+seed，容器重启后自动自愈；页脚展示自建访问计数。
+线上部署到 Sealos DevBox（国内容器平台 cloud.sealos.io，国内可直连；render.com/zeabur.com 国内打不开故弃用），拿到 `*.sealos.io` 子域名，教师手机可开。Sealos「应用管理 → 新建应用」只接受镜像名不接受源码；**源码部署走另一个入口「DevBox」**——云端开发环境 + 一键发布为正式应用，用仓库根 [`entrypoint.sh`](entrypoint.sh) 作为 OCI 镜像入口点，**不用本地装 Docker、不用 Dockerfile、不用 GitHub 镜像**（DevBox WebIDE 内直接 `git clone` 自己的 Gitee 仓库）。端口走 `process.env.PORT`；启动幂等建库+seed，容器重启后自动自愈；页脚展示自建访问计数。
 
-- **完整步骤与坑在哪**：[docs/部署手册.md](docs/部署手册.md)（写给下届学生，含字段表、验收、Gitee→GitHub 镜像、避雷清单）
+- **完整步骤与坑在哪**：[docs/部署手册.md](docs/部署手册.md)（写给下届学生，含 DevBox 字段表、WebIDE 流程、验收、避雷清单、镜像部署附录）
 - **唯一硬性代码改动**：`server.js` 的 `PORT = process.env.PORT || 3000`（容器化不改代码）
-- **其他备选**：仓库根 [`render.yaml`](render.yaml) 留作 Render/Zeabur 备选（需梯子，见手册附录 B）
+- **其他备选**：仓库根 [`Dockerfile`](Dockerfile) 留作 Sealos 应用管理镜像部署备选；[`render.yaml`](render.yaml) 留作 Render/Zeabur 备选（均需梯子或镜像仓库，见手册附录 A/B/C）
 - **已知限制**：免费额度/容器重启清库（预约数据回 seed、访问计数归零），不修（持久化需挂持久卷，超出 T2 范围）
 
 ## 文档索引
@@ -99,7 +100,7 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 - [docs/PRD.md](docs/PRD.md) — 需求与验收标准（AC1–AC8）
 - [docs/技术方案.md](docs/技术方案.md) — 架构与选型
 - [docs/任务看板.md](docs/任务看板.md) — 任务拆解与状态
-- [docs/部署手册.md](docs/部署手册.md) — Render 部署步骤与坑（T2）
+- [docs/部署手册.md](docs/部署手册.md) — Sealos DevBox 部署步骤与坑（T2）
 - [AGENTS.md](AGENTS.md) — AI 编码代理协作规范
 
 ## 已知限制
