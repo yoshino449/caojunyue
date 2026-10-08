@@ -66,9 +66,10 @@ export async function incrementVisits(env) {
 }
 
 // 访问计数读取
+// 注意：D1 prepared statement 用 .first() 取单行（不是 node:sqlite 的 .get()）
 export async function getVisits(env) {
   const row = await env.DB
     .prepare('SELECT count FROM visits WHERE id = 1')
-    .get();
+    .first();
   return { count: row ? row.count : 0 };
 }
