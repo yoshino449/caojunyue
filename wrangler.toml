@@ -1,0 +1,12 @@
+# Cloudflare Pages + Functions + D1 配置（详见 docs/技术方案.md §11.5）
+# 本地开发不依赖此文件（走 npm start + backend/ + node:sqlite）
+# 部署后回填 database_id（D1 控制台 → 数据库详情页 → API → 复制 UUID）
+
+name = "caojunyue"
+compatibility_date = "2026-10-08"
+pages_build_output_dir = "frontend"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "equipment-booking"
+database_id = "<部署后回填>"
