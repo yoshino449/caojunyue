@@ -1,49 +1,35 @@
-# Gitee Go CI 流水线（T2）：push → 装依赖 → 跑测试 → 通知
-# 模板组内统一；推送 main 即触发（本地推送 / 分支合并 / PR 合并均触发）
-#
-# 关键适配（为什么 commands 里自装 Node 22）：
-#   Gitee Go build@nodejs 插件官方支持版本最高 15.x，而本项目要求 Node ≥ 22
-#   （node:sqlite + node:test 都是 22 新能力），故 test 步用 npmmirror 国内源
-#   自装 Node 22 再跑测试；nodeVersion 字段仅为通过插件表单校验。
-#
-# 通知：Gitee Go 内置——构建完成自动发站内信 + 注册邮箱邮件；
-#   流水线设置里可加开 webhook / 群机器人，无需在 YAML 配置。
-
+# Gitee Go CI 流水线（schema 参照官方模板，详见 docs/部署手册.md）
+# 流程：push → 装依赖 → 跑测试（Node 22）→ 通知（平台内置站内信/邮件）
+# 触发器：push 触发在流水线「触发策略」UI 配置；YAML 里 manual 兜底
+version: "1.0"
 name: ci
 displayName: CI 流水线
-
-triggers:
-  push:
-    branches:
-      precise:
-        - main
-
 stages:
-  - stage:
-      name: build_and_test
-      displayName: 构建与测试
-      strategy: naturally
-      trigger: auto
-      steps:
-        # 第 1 步：装依赖（本项目零 npm 依赖，秒过；保留该步符合"装依赖"环节）
-        - step: build@nodejs
-          name: install
-          displayName: 装依赖
-          nodeVersion: 15.12.0
-          commands: |
-            set -e
-            npm install
-
-        # 第 2 步：跑测试（自装 Node 22 → npm test，5 条业务规则全绿才过）
-        - step: build@nodejs
-          name: test
-          displayName: 跑测试（Node 22）
-          nodeVersion: 15.12.0
-          dependsOn: install
-          commands: |
-            set -e
-            curl -fsSL https://registry.npmmirror.com/-/binary/node/v22.14.0/node-v22.14.0-linux-x64.tar.gz -o /tmp/node22.tar.gz
-            tar -xzf /tmp/node22.tar.gz -C /tmp
-            export PATH=/tmp/node-v22.14.0-linux-x64/bin:$PATH
-            node -v
-            npm test
+- name: build_and_test
+  displayName: 构建与测试
+  strategy: naturally
+  trigger: auto
+  steps:
+  - step: build@nodejs
+    name: install
+    displayName: 装依赖
+    nodeVersion: 15.12.0
+    commands:
+    - npm install
+    notify: []
+    strategy:
+      retry: "0"
+  - step: build@nodejs
+    name: test
+    displayName: 跑测试（Node 22）
+    nodeVersion: 15.12.0
+    commands:
+    - curl -fsSL https://registry.npmmirror.com/-/binary/node/v22.14.0/node-v22.14.0-linux-x64.tar.gz -o /tmp/node22.tar.gz && tar -xzf /tmp/node22.tar.gz -C /tmp && export PATH=/tmp/node-v22.14.0-linux-x64/bin:$PATH && node -v && npm test
+    notify: []
+    strategy:
+      retry: "0"
+triggers:
+  trigger: manual
+notify: []
+strategy:
+  blocking: true
