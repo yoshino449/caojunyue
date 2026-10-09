@@ -9,7 +9,7 @@ function jsonResponse(status, obj) {
   });
 }
 
-export async function onDelete({ params, env }) {
+export async function onRequestDelete({ params, env }) {
   const id = Number(params.id);
   if (!Number.isInteger(id) || id <= 0) {
     return jsonResponse(404, { error: '预约不存在' });
