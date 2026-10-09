@@ -1,6 +1,7 @@
 # Gitee Go CI 流水线（schema 参照官方模板，详见 docs/部署手册.md）
 # 流程：push → 装依赖 → 跑测试（Node 22）→ 通知（平台内置站内信/邮件）
 # 触发器：trigger: auto + push.branches.precise=master（schema 见 Gitee 帮助中心-触发事件）
+# 互评#2 整改记录见 docs/互评记录.md
 version: "1.0"
 name: ci
 displayName: CI 流水线
@@ -13,6 +14,9 @@ stages:
   - step: build@nodejs
     name: install
     displayName: 装依赖
+    # nodeVersion 选 15.12.0 不是因为项目要 Node 15——Gitee Go build@nodejs 插件官方版本列表最高仅到 15.x；
+    # 项目 package.json 要求 node≥22（用 node:sqlite），故本步骤用 15 仅跑 npm install（零依赖秒过），
+    # 真正跑测试在下一步：自解压 Node 22 后再 npm test
     nodeVersion: 15.12.0
     commands:
     - npm install
@@ -24,6 +28,8 @@ stages:
     displayName: 跑测试（Node 22）
     nodeVersion: 15.12.0
     commands:
+    # 链式命令单行（Gitee Go commands 列表项之间不自动 && 链接，且 YAML 多行块会报"steps 配置缺失或格式错误"——见 README 踩坑 2）
+    # 版本号 v22.14.0 写死，升级时改此 URL 与下方 export PATH 两处；npmmirror 镜像源国内构建机下载快
     - curl -fsSL https://registry.npmmirror.com/-/binary/node/v22.14.0/node-v22.14.0-linux-x64.tar.gz -o /tmp/node22.tar.gz && tar -xzf /tmp/node22.tar.gz -C /tmp && export PATH=/tmp/node-v22.14.0-linux-x64/bin:$PATH && node -v && npm test
     notify: []
     strategy:
@@ -32,6 +38,8 @@ triggers:
   trigger: auto
   push:
     branches:
+      # 选 master 不选 main：Gitee Go 按分支发现 .workflow/*.yml，默认分支是 master（README 踩坑 1）；
+      # 本项目主线是 main，靠 git push origin main:master 双分支同步保证 ci.yml 在 master 上能被发现
       precise:
         - master
 notify: []
