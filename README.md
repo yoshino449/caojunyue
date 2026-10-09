@@ -80,11 +80,12 @@ npm test   # 5 条规则全绿；连跑可重入（before 清库 + 用例 finall
 
 1. **按分支发现 YAML**：Gitee Go 按分支发现 `.workflow/*.yml`，默认分支是 master——YAML 只在 main 会永远"未发现"。本仓库主线是 main，靠 `git push origin main:master` 双分支同步解决；
 2. **schema 与直觉不同**：`version: "1.0"` 必填；stages 元素直接平铺（不能套 `- stage:`）；commands 是字符串列表（多行块会报"steps 配置缺失或格式错误"）；触发器是 `trigger: auto + push.branches.precise`（详见 [Gitee 触发事件文档](https://help.gitee.com/gitee-go/pipeline/trigger/)）；
-3. **开通时别用模板**：开通引导创建的 Maven 模板流水线对本项目无用且会把模板 YAML 提交进仓库，发现后直接删除。
+3. **开通时别用模板**：开通引导创建的 Maven 模板流水线对本项目无用且会把模板 YAML 提交进仓库，发现后直接删除；
+4. **社区版通知不可达**：Gitee 平台通知设置（gitee.com/profile/notifications）无流水线开关，任务节点无通知区块，step 级 `notify` 无公开 YAML schema；实测成功构建（#2/#3）与故意失败构建（#4，改错断言验证 CI 拦截有效）**均收不到站内信/邮件**——"通知"环节以构建历史页状态为准（组内统一模板，结论同样适用）。
 
 - **装依赖**：本项目零 npm 依赖，该步秒过（保留以符合模板环节）；
 - **跑测试**：Gitee Go `build@nodejs` 插件官方版本最高 15.x，跑不了 `node:sqlite`，故测试步用 npmmirror 源自装 Node 22 后 `npm test`（5 条业务规则全绿才算过）；
-- **通知**：Gitee Go 内置构建结果站内信 + 邮件；流水线设置里可加开 webhook / 群机器人；
+- **通知**：社区版站内信/邮件均不可达（实测成功与失败构建均无），以构建历史页状态为准——见上方踩坑 4；
 - **徽章**：README 顶部徽章链接到[流水线页](https://gitee.com/cao-junyue/caojunyue/gitee_go)；构建变绿后可在流水线「设置 → 徽标」复制动态状态徽标替换。
 
 首次使用需在 Gitee 网页开通 Gitee Go（仓库 → 流水线 → 开通，需账号绑定手机号；单仓库 200 分钟免费构建时长），开通后流水线自动识别 `.workflow/ci.yml`。

@@ -66,7 +66,7 @@ test('规则1 同器材+同日+同时段 → 拒绝（409）', async () => {
   const id = await createOk(body); // 第一次：占坑成功
   try {
     const res = await postBooking(body); // 第二次：同键撞单
-    assert.strictEqual(res.status, 410); // 临时：故意改错验证 CI 失败通知，随后恢复 409
+    assert.strictEqual(res.status, 409);
     assert.match((await res.json()).error, /已被预约/);
   } finally {
     await deleteBooking(id); // 清理
