@@ -8,6 +8,8 @@
 
 # 教务器材预约
 
+[![CI - Gitee Go](https://img.shields.io/badge/CI-Gitee%20Go-C71D23?logo=gitee)](https://gitee.com/cao-junyue/caojunyue/gitee_go)
+
 👋 欢迎来到本项目，一起加油！——第9组 曹骏越
 
 选器材、选日期时段完成预约，同一器材同一时段自动互斥。
@@ -69,6 +71,17 @@ npm test   # 5 条规则全绿；连跑可重入（before 清库 + 用例 finall
 1. `--test tests/` 报 Cannot find module → 改 `--test tests/api.test.js`：Node 22 在 Windows 下把带尾斜杠的目录当模块路径解析；
 2. `Body has already been read` → createOk 先读 body 再断言：断言消息里的 `await res.text()` 无条件求值，提前消费了响应流；
 3. 规则 2/3/5 连锁 409 → before 钩子清空测试库 + 用例 try/finally 自清：用例中途挂起会残留数据，共用互斥键导致下一轮全撞——测试必须可重入。
+
+## CI（T2：Gitee Go）
+
+流水线配置：[.workflow/ci.yml](.workflow/ci.yml)（组内统一模板）。推送 `main` 自动触发：**装依赖 → 跑测试（Node 22）→ 通知**。
+
+- **装依赖**：本项目零 npm 依赖，该步秒过（保留以符合模板环节）；
+- **跑测试**：Gitee Go `build@nodejs` 插件官方版本最高 15.x，跑不了 `node:sqlite`，故测试步用 npmmirror 源自装 Node 22 后 `npm test`（5 条业务规则全绿才算过）；
+- **通知**：Gitee Go 内置构建结果站内信 + 邮件；流水线设置里可加开 webhook / 群机器人；
+- **徽章**：README 顶部徽章链接到[流水线页](https://gitee.com/cao-junyue/caojunyue/gitee_go)；构建变绿后可在流水线「设置 → 徽标」复制动态状态徽标替换。
+
+首次使用需在 Gitee 网页开通 Gitee Go（仓库 → 流水线 → 开通，需账号绑定手机号；单仓库 200 分钟免费构建时长），开通后流水线自动识别 `.workflow/ci.yml`。
 
 ## 数据库
 
