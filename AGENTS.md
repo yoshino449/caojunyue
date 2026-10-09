@@ -15,6 +15,7 @@
 | `backend/` | Node 原生 http 服务 | server.js 入口、db.js 数据层、init-db.js 初始化 |
 | `db/` | SQL 脚本 | schema.sql 建表、seed.sql 示例；表结构变更必须同步技术方案 |
 | `data/` | 运行时 SQLite 文件 | 自动生成，不手工编辑、不写入版本库 |
+| `tests/` | 接口测试（node:test） | 零依赖；独立测试库 data/test.db（DB_FILE 环境变量），不碰开发数据 |
 | `functions/` | Cloudflare Pages Functions（ESM） | 线上部署适配层；本地 `npm start` 不依赖；与 `backend/` 并列、互不替换（详见技术方案 §11） |
 
 ## 技术栈约束（改动前先更新本文件与 docs/技术方案.md）
@@ -35,6 +36,7 @@
 ## 常用命令
 
 - `npm start` — 启动后端（含静态托管前端），http://localhost:3000
+- `npm test` — 跑接口测试（5 条业务规则，node:test，全绿才可交付）
 - `npm run db:init` — 幂等初始化数据库
 - 验收基线：GET `/ping` 与 `/api/ping` 返回 `ok`；GET `/api/bookings` 返回 JSON 数组；页面可打开可交互
 

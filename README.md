@@ -26,6 +26,7 @@ vibe-lab1/
 │   ├── schema.sql     建表 + 唯一索引（互斥键 equip_id+date+slot）
 │   └── seed.sql       示例数据（幂等）
 ├── data/              运行时生成的 SQLite 文件（equipment.db）
+├── tests/             接口测试（node:test，零依赖；5 条业务规则，独立测试库 test.db）
 ├── docs/              PRD / 技术方案 / 任务看板 / 部署手册
 ├── package.json       scripts：start、db:init；engines.node ≥ 22
 ├── entrypoint.sh      Sealos DevBox 发布为正式应用时的 OCI 镜像入口点
@@ -46,6 +47,28 @@ npm start            # 启动后端并托管前端
 
 - 打开 http://localhost:3000          → 预约页面
 - 打开 http://localhost:3000/ping     → 返回 `ok`（骨架验收接口）
+
+## 测试（T1 测试补齐）
+
+人列 5 条关键业务规则，AI 生成接口测试（Node 22 内置 `node:test`，零 npm 依赖；起真实 HTTP 服务 + 独立测试库 `data/test.db`，不碰开发数据）：
+
+| # | 业务规则 | 期望 |
+|---|---|---|
+| 1 | 同器材 + 同日 + 同时段 | 拒绝 409 |
+| 2 | 换时段（同器材同日） | 允许 201 |
+| 3 | 换器材（同日同时段） | 允许 201 |
+| 4 | 过去日期 | 拒绝 400 |
+| 5 | 取消后时段释放可重约 | DELETE 204 → POST 201 |
+
+```bash
+npm test   # 5 条规则全绿；连跑可重入（before 清库 + 用例 finally 自清）
+```
+
+**跑挂修复记录**（均为改用例，业务代码零改动）：
+
+1. `--test tests/` 报 Cannot find module → 改 `--test tests/api.test.js`：Node 22 在 Windows 下把带尾斜杠的目录当模块路径解析；
+2. `Body has already been read` → createOk 先读 body 再断言：断言消息里的 `await res.text()` 无条件求值，提前消费了响应流；
+3. 规则 2/3/5 连锁 409 → before 钩子清空测试库 + 用例 try/finally 自清：用例中途挂起会残留数据，共用互斥键导致下一轮全撞——测试必须可重入。
 
 ## 数据库
 

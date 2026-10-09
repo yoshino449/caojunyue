@@ -19,7 +19,8 @@ function openDb() {
     throw new Error('当前 Node 未启用 node:sqlite，请使用 npm start 启动（需要 --experimental-sqlite 标志，Node ≥ 22）');
   }
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  db = new DatabaseSync(path.join(DATA_DIR, 'equipment.db'));
+  // DB_FILE 环境变量可覆盖库文件名（tests/ 用独立 test.db 隔离开发数据）
+  db = new DatabaseSync(path.join(DATA_DIR, process.env.DB_FILE || 'equipment.db'));
   return db;
 }
 

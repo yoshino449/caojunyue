@@ -158,7 +158,12 @@ const server = http.createServer((req, res) => {
 });
 
 ensureDb(); // 启动即保证数据库就绪（幂等：建表 + 示例数据）
-server.listen(PORT, () => {
-  console.log(`教务器材预约后端已启动: http://localhost:${PORT}`);
-  console.log(`健康检查: http://localhost:${PORT}/ping`);
-});
+// 仅直接运行（npm start）时监听端口；被 tests/ require 时由测试自行 listen(0) 随机端口
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`教务器材预约后端已启动: http://localhost:${PORT}`);
+    console.log(`健康检查: http://localhost:${PORT}/ping`);
+  });
+}
+
+module.exports = server;
