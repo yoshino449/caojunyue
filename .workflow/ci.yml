@@ -1,6 +1,6 @@
 # Gitee Go CI 流水线（schema 参照官方模板，详见 docs/部署手册.md）
 # 流程：push → 装依赖 → 跑测试（Node 22）→ 通知（平台内置站内信/邮件）
-# 触发器：push 触发在流水线「触发策略」UI 配置；YAML 里 manual 兜底
+# 触发器：trigger: auto + push.branches.precise=master（schema 见 Gitee 帮助中心-触发事件）
 version: "1.0"
 name: ci
 displayName: CI 流水线
@@ -29,7 +29,11 @@ stages:
     strategy:
       retry: "0"
 triggers:
-  trigger: manual
+  trigger: auto
+  push:
+    branches:
+      precise:
+        - master
 notify: []
 strategy:
   blocking: true
