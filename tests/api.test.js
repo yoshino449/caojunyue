@@ -1,6 +1,8 @@
 // T1 接口测试：5 条关键业务规则（人列规则，AI 生成用例）
 // 运行：npm test（node --experimental-sqlite --test tests/api.test.js，零 npm 依赖，用 Node 22 内置 node:test）
 // 隔离：独立测试库 data/test.db（DB_FILE 环境变量，须在 require server 前设置），不碰开发数据
+// DB_FILE 是文件名（不是路径），由 backend/db.js 在 openDb() 里 path.join(DATA_DIR, DB_FILE) 解析到 data/ 下；
+// 故此处赋值 'test.db' 即落到 data/test.db，与开发库 data/equipment.db 隔离
 process.env.DB_FILE = 'test.db';
 
 const test = require('node:test');
@@ -16,9 +18,10 @@ const TEST_DB = path.join(__dirname, '..', 'data', 'test.db');
 
 let base; // 测试服务地址（随机端口）
 
-// 未来日期（默认 +30 天）：避开 seed 的"明天"占用，也避开"过去日期"拦截
+// 未来日期（默认 +30 天）：30 远离 seed 用的"明天"固定日期，也避开"过去日期"拦截；
+// 即便 seed 改用其他日期，+30 也足够拉开距离，5 条规则间互不撞单
 function futureDate(days = 30) {
-  const d = new Date(Date.now() + days * 86400000);
+  const d = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${m}-${day}`;

@@ -145,6 +145,7 @@ const server = http.createServer((req, res) => {
       return send(res, 403, 'Forbidden'); // 防目录穿越
     }
     if (isRoot) {
+      // 访问统计是辅助功能，失败不应影响首页可用；故静默 catch 仅记日志
       try { incrementVisits(); } catch (e) { console.error('访问计数失败', e); }
     }
     fs.readFile(fp, (err, data) => {
