@@ -129,7 +129,8 @@ const server = http.createServer((req, res) => {
   }
 
   // AI 预约查询助手：Key 在服务端，失败兜底（无Key/超时/额度/网络）
-  if (req.method === 'POST' && pathname === '/api/ai/query') {
+  // 路径用 /api/bookings/ai（复用 bookings 路由前缀，因 Cloudflare Pages 不识别新增 Function 文件）
+  if (req.method === 'POST' && pathname === '/api/bookings/ai') {
     return readJsonBody(req)
       .then(input => {
         const question = String(input.question || '').trim();

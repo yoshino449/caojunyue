@@ -110,7 +110,7 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 | GET | `/api/visits` | 返回页面访问计数 JSON（`{count}`），访问根页面时自增 |
 | POST | `/api/bookings` | 新建预约，JSON：`equipId/user/date/slot`；成功 `201`，入参非法 `400`，同器材同日同时段冲突 `409` |
 | DELETE | `/api/bookings/:id` | 取消预约（删除记录、释放时段）；成功 `204`，记录不存在 `404` |
-| POST | `/api/ai/query` | AI 预约查询助手，JSON：`{question}`；成功 `200 {answer}`；无Key `503`、超时 `504`、额度用尽/余额不足 `429/503`、网络异常 `503`（Key 在服务端，前端不直连 LLM） |
+| POST | `/api/bookings/ai` | AI 预约查询助手，JSON：`{question}`；成功 `200 {answer}`；无Key `503`、超时 `504`、额度用尽/余额不足 `429/503`、网络异常 `503`（Key 在服务端 `DEEPSEEK_API_KEY`，前端不直连 LLM） |
 | GET | `/` | 静态托管前端页面 |
 
 ## 开源组件接入：Chart.js（T1）
