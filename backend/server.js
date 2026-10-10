@@ -111,9 +111,24 @@ const server = http.createServer((req, res) => {
   }
 
   // 新建预约：校验 → 写入；唯一索引冲突 → 409（互斥规则在数据库层兜底）
+  // body.ai === true 时走 AI 查询助手分支（复用路由，因 Cloudflare Pages 不识别新增 Function 文件）
   if (req.method === 'POST' && pathname === '/api/bookings') {
     return readJsonBody(req)
       .then(input => {
+        // AI 查询助手分支
+        if (input.ai === true) {
+          const question = String(input.question || '').trim();
+          if (!question) return sendJson(res, 400, { error: '请输入问题' });
+          if (question.length > 200) return sendJson(res, 400, { error: '问题最长 200 个字' });
+          return queryDeepSeek(question, listBookings())
+            .then(result => sendJson(res, 200, result))
+            .catch(err => {
+              const statusMap = { NO_KEY: 503, TIMEOUT: 504, QUOTA: 429, AUTH: 503, NETWORK: 503 };
+              const status = statusMap[err.code] || 503;
+              return sendJson(res, status, { error: err.message, code: err.code });
+            });
+        }
+        // 正常预约分支
         const checked = validateBooking(input);
         if (checked.error) return sendJson(res, 400, { error: checked.error });
         try {
@@ -124,26 +139,6 @@ const server = http.createServer((req, res) => {
           console.error(e);
           return sendJson(res, 500, { error: '服务器内部错误' });
         }
-      })
-      .catch(err => sendJson(res, 400, { error: err.message }));
-  }
-
-  // AI 预约查询助手：Key 在服务端，失败兜底（无Key/超时/额度/网络）
-  // 路径用 /api/bookings/ai（复用 bookings 路由前缀，因 Cloudflare Pages 不识别新增 Function 文件）
-  if (req.method === 'POST' && pathname === '/api/bookings/ai') {
-    return readJsonBody(req)
-      .then(input => {
-        const question = String(input.question || '').trim();
-        if (!question) return sendJson(res, 400, { error: '请输入问题' });
-        if (question.length > 200) return sendJson(res, 400, { error: '问题最长 200 个字' });
-        return queryDeepSeek(question, listBookings())
-          .then(result => sendJson(res, 200, result))
-          .catch(err => {
-            // 失败兜底：按错误类型返回对应状态码与中文提示
-            const statusMap = { NO_KEY: 503, TIMEOUT: 504, QUOTA: 429, AUTH: 503, NETWORK: 503 };
-            const status = statusMap[err.code] || 503;
-            return sendJson(res, status, { error: err.message, code: err.code });
-          });
       })
       .catch(err => sendJson(res, 400, { error: err.message }));
   }

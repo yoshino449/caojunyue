@@ -532,10 +532,10 @@
 
     const loading = appendAiMsg('loading', '思考中…');
     try {
-      const res = await fetch('/api/bookings/ai', {
+      const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
+        body: JSON.stringify({ ai: true, question })
       });
       const data = await res.json();
       loading.remove();
