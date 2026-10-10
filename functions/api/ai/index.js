@@ -22,6 +22,13 @@ function buildContext(bookings) {
   return '已有预约记录：\n' + lines.join('\n');
 }
 
+export async function onRequestGet() {
+  return new Response(JSON.stringify({ service: 'ai-assistant', method: 'POST only' }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json; charset=utf-8' }
+  });
+}
+
 export async function onRequestPost({ request, env }) {
   let input;
   try {
