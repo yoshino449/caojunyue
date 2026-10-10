@@ -77,6 +77,10 @@ function queryDeepSeek(question, bookings) {
           const err = new Error('AI 额度已用尽，请稍后再试');
           err.code = 'QUOTA';
           reject(err);
+        } else if (resp.statusCode === 402) {
+          const err = new Error('AI 服务余额不足，请充值后再试');
+          err.code = 'QUOTA';
+          reject(err);
         } else if (resp.statusCode === 401 || resp.statusCode === 403) {
           const err = new Error('AI 服务配置错误（Key 无效）');
           err.code = 'AUTH';

@@ -71,6 +71,8 @@ export async function onRequestPost({ request, env }) {
       return jsonRes(200, { answer: answer.trim() });
     } else if (resp.status === 429) {
       return jsonRes(429, { error: 'AI 额度已用尽，请稍后再试', code: 'QUOTA' });
+    } else if (resp.status === 402) {
+      return jsonRes(503, { error: 'AI 服务余额不足，请充值后再试', code: 'QUOTA' });
     } else if (resp.status === 401 || resp.status === 403) {
       return jsonRes(503, { error: 'AI 服务配置错误（Key 无效）', code: 'AUTH' });
     }
