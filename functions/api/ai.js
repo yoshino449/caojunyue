@@ -1,6 +1,6 @@
-// POST /api/ai/query → AI 预约查询助手（DeepSeek，Key 在服务端 env.DEEPSEEK_API_KEY）
+// POST /api/ai → AI 预约查询助手（DeepSeek，Key 在服务端 env.DEEPSEEK_API_KEY）
 // 失败兜底：Key 缺失 / 超时 / 额度用尽 / 网络错误，返回中文提示
-import { listBookings } from '../../../_lib/queries.js';
+import { listBookings } from '../_lib/queries.js';
 
 const DEEPSEEK_URL = 'https://api.deepseek.com/v1/chat/completions';
 const TIMEOUT_MS = 15000;
