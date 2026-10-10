@@ -175,6 +175,32 @@
   .chart-wrap { position: relative; height: 220px; }   /* 固定高度配 maintainAspectRatio:false，防拉伸 */
   .stats-empty { font-size: 13px; color: #b6bac0; text-align: center; padding: 20px 0; }
 
+  /* AI 助手弹窗 */
+  .ai-chat {
+    height: 240px;
+    overflow-y: auto;
+    border: 1px solid #e8eaed;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    background: #fafbfc;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .ai-msg { margin-bottom: 10px; }
+  .ai-msg-user { color: #3370ff; font-weight: 600; }
+  .ai-msg-ai { color: #41464d; }
+  .ai-msg-error { color: #d93026; }
+  .ai-msg-loading { color: #8a8f99; font-style: italic; }
+  .ai-input-row { display: flex; gap: 8px; }
+  .ai-input-row input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #d8dade;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
   footer {
     text-align: center;
     font-size: 12px;
@@ -190,6 +216,7 @@
   <h1>教务器材预约</h1>
   <p>选择器材、日期与时段，同一器材同一时段不可重复预约</p>
   <button type="button" class="stats-btn" id="btnStats">📊 统计</button>
+  <button type="button" class="stats-btn" id="btnAi" style="right: 100px;">🤖 AI 助手</button>
 </header>
 
 <main class="cards" id="cards"></main>
@@ -243,6 +270,22 @@
     </div>
     <div class="actions">
       <button type="button" class="btn btn-primary" id="btnStatsClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI 助手弹窗（T1：LLM 预约查询） -->
+<div class="overlay" id="aiOverlay">
+  <div class="modal modal-stats">
+    <h3>🤖 AI 预约助手</h3>
+    <p style="font-size:12px;color:#8a8f99;margin:0 0 12px;">基于当前预约数据回答，例如"明天上午有空闲的投影仪吗？"</p>
+    <div class="ai-chat" id="aiChat"></div>
+    <div class="ai-input-row">
+      <input type="text" id="aiInput" placeholder="输入你的问题…" maxlength="200">
+      <button type="button" class="btn btn-primary" id="btnAiSend">发送</button>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" id="btnAiClose">关闭</button>
     </div>
   </div>
 </div>
@@ -455,6 +498,63 @@
     }
   }
 
+  /* ---------- AI 预约助手（T1：LLM） ---------- */
+  function openAi() {
+    document.getElementById('aiOverlay').classList.add('show');
+    const chat = document.getElementById('aiChat');
+    if (chat.children.length === 0) {
+      appendAiMsg('ai', '你好！我是预约助手，可以问我"明天上午投影仪有空吗？"之类的问题。');
+    }
+    document.getElementById('aiInput').focus();
+  }
+
+  function closeAi() {
+    document.getElementById('aiOverlay').classList.remove('show');
+  }
+
+  function appendAiMsg(type, text) {
+    const chat = document.getElementById('aiChat');
+    const div = document.createElement('div');
+    div.className = 'ai-msg ai-msg-' + type;
+    const prefix = type === 'user' ? '你：' : type === 'ai' ? 'AI：' : '';
+    div.textContent = prefix + text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+    return div;
+  }
+
+  async function sendAi() {
+    const input = document.getElementById('aiInput');
+    const question = input.value.trim();
+    if (!question) return;
+    appendAiMsg('user', question);
+    input.value = '';
+
+    const loading = appendAiMsg('loading', '思考中…');
+    try {
+      const res = await fetch('/api/ai/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      const data = await res.json();
+      loading.remove();
+      if (res.ok) {
+        appendAiMsg('ai', data.answer);
+      } else {
+        // 失败兜底：按状态码给中文提示
+        let tip = data.error || 'AI 服务暂不可用';
+        if (res.status === 503) tip += '（服务未配置或网络异常）';
+        else if (res.status === 504) tip += '（响应超时，请稍后再试）';
+        else if (res.status === 429) tip += '（额度已用尽）';
+        appendAiMsg('error', '⚠️ ' + tip);
+      }
+    } catch (e) {
+      loading.remove();
+      appendAiMsg('error', '⚠️ 网络异常，请检查连接后重试');
+    }
+  }
+
   /* ---------- 事件绑定 ---------- */
   document.getElementById('btnSubmit').addEventListener('click', submitBooking);
   document.getElementById('btnCancel').addEventListener('click', closeModal);
@@ -466,8 +566,17 @@
   document.getElementById('statsOverlay').addEventListener('click', e => {
     if (e.target.id === 'statsOverlay') closeStats();
   });
+  document.getElementById('btnAi').addEventListener('click', openAi);
+  document.getElementById('btnAiClose').addEventListener('click', closeAi);
+  document.getElementById('btnAiSend').addEventListener('click', sendAi);
+  document.getElementById('aiInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendAi();
+  });
+  document.getElementById('aiOverlay').addEventListener('click', e => {
+    if (e.target.id === 'aiOverlay') closeAi();
+  });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeModal(); closeStats(); }
+    if (e.key === 'Escape') { closeModal(); closeStats(); closeAi(); }
   });
 
   renderCards(); // 先画骨架（加载中…），数据到了再刷新

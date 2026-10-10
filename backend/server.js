@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { ensureDb, listBookings, createBooking, deleteBooking, getStats, incrementVisits, getVisits, BookingConflictError } = require('./db');
+const { queryDeepSeek } = require('./ai');
 
 const PORT = process.env.PORT || 3000;   // Render 注入 PORT 环境变量；本地默认 3000
 const FRONTEND_DIR = path.resolve(__dirname, '..', 'frontend');
@@ -123,6 +124,25 @@ const server = http.createServer((req, res) => {
           console.error(e);
           return sendJson(res, 500, { error: '服务器内部错误' });
         }
+      })
+      .catch(err => sendJson(res, 400, { error: err.message }));
+  }
+
+  // AI 预约查询助手：Key 在服务端，失败兜底（无Key/超时/额度/网络）
+  if (req.method === 'POST' && pathname === '/api/ai/query') {
+    return readJsonBody(req)
+      .then(input => {
+        const question = String(input.question || '').trim();
+        if (!question) return sendJson(res, 400, { error: '请输入问题' });
+        if (question.length > 200) return sendJson(res, 400, { error: '问题最长 200 个字' });
+        return queryDeepSeek(question, listBookings())
+          .then(result => sendJson(res, 200, result))
+          .catch(err => {
+            // 失败兜底：按错误类型返回对应状态码与中文提示
+            const statusMap = { NO_KEY: 503, TIMEOUT: 504, QUOTA: 429, AUTH: 503, NETWORK: 503 };
+            const status = statusMap[err.code] || 503;
+            return sendJson(res, status, { error: err.message, code: err.code });
+          });
       })
       .catch(err => sendJson(res, 400, { error: err.message }));
   }
