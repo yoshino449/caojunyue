@@ -11,3 +11,9 @@ myrepo-clone/
 # 系统/编辑器
 .DS_Store
 Thumbs.db
+
+# Trae 本地工作区数据（不入库）
+.trae/
+
+# 调试日志（不入库）
+debug.log
