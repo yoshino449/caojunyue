@@ -46,7 +46,7 @@ async function handleAiQuery(env, question) {
       const answer = json.choices?.[0]?.message?.content || '（AI 返回了空回答）';
       return jsonResponse(200, { answer: answer.trim() });
     } else if (resp.status === 429) return jsonResponse(429, { error: 'AI 额度已用尽，请稍后再试', code: 'QUOTA' });
-    else if (resp.status === 402) return jsonResponse(503, { error: 'AI 服务余额不足，请充值后再试', code: 'QUOTA' });
+    else if (resp.status === 402) return jsonResponse(429, { error: 'AI 服务余额不足，请充值后再试', code: 'QUOTA' });
     else if (resp.status === 401 || resp.status === 403) return jsonResponse(503, { error: 'AI 服务配置错误（Key 无效）', code: 'AUTH' });
     return jsonResponse(503, { error: `AI 服务异常（${resp.status}）`, code: 'NETWORK' });
   } catch (e) {
