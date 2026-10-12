@@ -187,7 +187,8 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 - [docs/技术方案.md](docs/技术方案.md) — 架构与选型
 - [docs/任务看板.md](docs/任务看板.md) — 任务拆解与状态
 - [docs/部署手册.md](docs/部署手册.md) — Cloudflare Pages + Functions + D1 部署步骤与坑（T2）
-- [docs/演示脚本.md](docs/演示脚本.md) — 90 秒闭环演示脚本 + 审题三问问答
+- [docs/演示脚本.md](docs/演示脚本.md) — 90 秒闭环演示脚本 + 审题三问问答 + Demo Day 物料清单
+- [docs/路演PPT.html](docs/路演PPT.html) — 6 页路演草稿（方向键翻页，浏览器直接打开）
 - [AGENTS.md](AGENTS.md) — AI 编码代理协作规范
 
 ## 已知限制

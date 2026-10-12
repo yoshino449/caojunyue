@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>教务器材预约 · 路演</title>
+<style>
+  :root{
+    --bg:#0f1419; --fg:#e6e6e6; --accent:#4dd0a7; --muted:#8a8a8a;
+    --card:#1a2128; --border:#2a3540;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--fg)}
+  .deck{position:relative; width:100vw; height:100vh; overflow:hidden}
+  .slide{position:absolute; inset:0; display:none; flex-direction:column; justify-content:center; padding:6vh 8vw}
+  .slide.active{display:flex; animation:fade .4s ease}
+  @keyframes fade{from{opacity:0; transform:translateY(12px)}to{opacity:1; transform:none}}
+  h1{font-size:clamp(2.4rem,5.5vw,4.2rem); line-height:1.2; margin-bottom:1.2rem}
+  h2{font-size:clamp(1.6rem,3.2vw,2.4rem); color:var(--accent); margin-bottom:1.6rem; font-weight:600}
+  h3{font-size:clamp(1.1rem,2vw,1.5rem); margin-bottom:.8rem; color:var(--fg)}
+  p{font-size:clamp(1rem,1.8vw,1.4rem); line-height:1.7; color:var(--muted); max-width:60ch}
+  .accent{color:var(--accent)}
+  .tag{display:inline-block; padding:.2em .8em; border:1px solid var(--border); border-radius:4px; font-size:.85rem; color:var(--muted); margin:.2em .4em .2em 0}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.2rem; margin-top:1.2rem}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1.2rem 1.4rem}
+  .card h3{color:var(--accent); margin-bottom:.4rem}
+  .card p{font-size:1rem; color:var(--muted)}
+  .url{font-family:ui-monospace,monospace; background:var(--card); padding:.4em .8em; border-radius:4px; color:var(--accent); font-size:clamp(.9rem,1.6vw,1.2rem); word-break:break-all}
+  .nav{position:fixed; bottom:3vh; right:4vw; display:flex; gap:.8rem; align-items:center; z-index:10}
+  .nav button{background:var(--card); border:1px solid var(--border); color:var(--fg); width:40px; height:40px; border-radius:50%; font-size:1.2rem; cursor:pointer; transition:.2s}
+  .nav button:hover{border-color:var(--accent); color:var(--accent)}
+  .nav .count{font-family:ui-monospace,monospace; color:var(--muted); font-size:.9rem; min-width:60px; text-align:center}
+  .footer{position:fixed; bottom:3vh; left:4vw; color:var(--muted); font-size:.8rem; z-index:10}
+  ul{list-style:none; margin-top:.6rem}
+  ul li{padding:.4rem 0 .4rem 1.6rem; position:relative; font-size:clamp(.95rem,1.7vw,1.2rem); color:var(--muted)}
+  ul li::before{content:"›"; position:absolute; left:0; color:var(--accent)}
+  .quote{border-left:3px solid var(--accent); padding-left:1.2rem; margin:1rem 0; font-style:italic; color:var(--fg)}
+  .small{font-size:.85rem; color:var(--muted)}
+  .num{font-family:ui-monospace,monospace; color:var(--accent); font-weight:600}
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- 第1页 封面 -->
+  <section class="slide active" data-page="1">
+    <div class="small">第9组 · 曹骏越 · 路演草稿</div>
+    <h1>教务器材<span class="accent">预约</span></h1>
+    <p>选器材、选日期时段完成预约，同一器材同一时段自动互斥。</p>
+    <p style="margin-top:1.2rem">线上地址：<span class="url">https://caojunyue.pages.dev/</span></p>
+    <div style="margin-top:1.6rem">
+      <span class="tag">Node 22 原生 http</span>
+      <span class="tag">node:sqlite</span>
+      <span class="tag">零 npm 依赖</span>
+      <span class="tag">Cloudflare Pages + D1</span>
+    </div>
+  </section>
+
+  <!-- 第2页 解决了谁的什么问题 -->
+  <section class="slide" data-page="2">
+    <h2>它解决了谁的什么问题</h2>
+    <div class="quote">"靠微信群口头约定 + 纸质登记，约没约上全凭记性；占用信息散落在聊天记录里，撞车后责任说不清。"</div>
+    <div class="grid">
+      <div class="card">
+        <h3>任课老师</h3>
+        <p>明天第3-4节要用投影仪，打开页面看占用、点「预约」，时段被占当场被拒。</p>
+      </div>
+      <div class="card">
+        <h3>教务员</h3>
+        <p>一屏看全三台器材占用，代老师登记，不用翻聊天记录对账。</p>
+      </div>
+    </div>
+    <p style="margin-top:1.2rem">路演的唯一问题：<span class="accent">它解决了谁的什么问题，现场真的能跑</span>。</p>
+  </section>
+
+  <!-- 第3页 功能与验收 -->
+  <section class="slide" data-page="3">
+    <h2>功能列表 · AC 清单</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>F1 浏览器材</h3>
+        <p>三张卡片：投影仪 / 单反 / 音响，展示今天起预约。</p>
+      </div>
+      <div class="card">
+        <h3>F2 提交预约</h3>
+        <p>预约人 + 日期 + 五选一时段；成功后立即出现在卡片。</p>
+      </div>
+      <div class="card">
+        <h3>F3 时段互斥</h3>
+        <p>同器材+同日+同时段仅一条；重复在弹窗内红字拒绝。</p>
+      </div>
+      <div class="card">
+        <h3>F4 取消释放</h3>
+        <p>二次确认删除，时段立即释放可被他人重约。</p>
+      </div>
+      <div class="card">
+        <h3>F5 统计图表</h3>
+        <p>Chart.js 柱状图（各器材预约量）+ 饼图（各时段热度）。</p>
+      </div>
+      <div class="card">
+        <h3>F6 AI 助手</h3>
+        <p>DeepSeek 自然语言查预约，Key 存服务端，失败有兜底。</p>
+      </div>
+    </div>
+    <p class="small" style="margin-top:1rem">AC1–AC8 全部通过；功能列表让给 PPT，现场留给演示。</p>
+  </section>
+
+  <!-- 第4页 架构 + 现场能跑 -->
+  <section class="slide" data-page="4">
+    <h2>现场真的能跑</h2>
+    <ul>
+      <li><span class="num">双轨架构</span>：本地 <code>backend/</code>（CommonJS + node:sqlite）↔ 线上 <code>functions/</code>（ESM + D1 binding），前端同代码无需切换</li>
+      <li><span class="num">互斥兜底</span>：数据库唯一索引 <code>UNIQUE(equip_id, date, slot)</code>，服务端 409，前端不本地判重</li>
+      <li><span class="num">5 条测试</span>：node:test 零依赖，同键409 / 换时段201 / 换器材201 / 过去日期400 / 取消释放再约201，全绿</li>
+      <li><span class="num">CI</span>：Gitee Go，push master → 装依赖 → 跑测试，构建历史页可查</li>
+      <li><span class="num">线上</span>：Cloudflare Pages 边缘运行 + D1 持久化，无休眠、数据不丢</li>
+    </ul>
+    <p style="margin-top:1.2rem">线上 5 个验收 URL 全通过：<span class="url">/ping /api/ping /api/bookings /api/visits /</span></p>
+  </section>
+
+  <!-- 第5页 我怎么指挥 AI -->
+  <section class="slide" data-page="5">
+    <h2>我怎么指挥 AI</h2>
+    <div class="quote">
+      我把 PRD 三件套（需求/技术方案/任务看板）当 AI 的唯一上下文：每条功能线按"任务卡→@相关文件→AI 实现→本地跑→diff 审→commit"循环，AI 写代码我审 diff，跑挂了先改用例不改业务。互斥判重从 localStorage 前端判重迁到服务端唯一索引，是 AI 按技术方案 §11 重构的；CI 踩坑、D1 状态码不一致、Cloudflare Functions 命名限制，全部靠"先收集证据再最小修复"闭环。我指挥方向与验收，AI 出手速与覆盖面。
+    </div>
+    <p class="small" style="margin-top:1rem">— 100 字叙事，长在反思区里</p>
+  </section>
+
+  <!-- 第6页 Demo 时间 -->
+  <section class="slide" data-page="6">
+    <h2>现场演示</h2>
+    <p>90 秒闭环：<span class="accent">约 → 撞 → 取消 → 再约</span></p>
+    <ul>
+      <li>步骤1：投影仪 · 明天 · 第1-2节 → 预约成功 201</li>
+      <li>步骤2：同键再提交 → 撞单 409，弹窗红字不关</li>
+      <li>步骤3：取消该预约 → 204，时段释放</li>
+      <li>步骤4：同键再约 → 成功 201，闭环走通</li>
+      <li>加分：📊 统计图表 · 🤖 AI 助手查询</li>
+    </ul>
+    <p style="margin-top:1.2rem">保底：<span class="url">https://caojunyue.pages.dev/</span>（手机可开）</p>
+    <p class="small" style="margin-top:.8rem">演示脚本详见 <code>docs/演示脚本.md</code></p>
+    <p style="margin-top:2rem; font-size:1.6rem" class="accent">谢谢，请提问。</p>
+  </section>
+
+</div>
+
+<div class="footer">教务器材预约 · 第9组 曹骏越</div>
+<div class="nav">
+  <button onclick="go(-1)">‹</button>
+  <span class="count"><span id="cur">1</span>/6</span>
+  <button onclick="go(1)">›</button>
+</div>
+
+<script>
+  const slides=document.querySelectorAll('.slide');
+  let i=0;
+  function show(n){
+    i=(n+slides.length)%slides.length;
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    document.getElementById('cur').textContent=i+1;
+  }
+  function go(d){show(i+d)}
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' ')go(1);
+    if(e.key==='ArrowLeft')go(-1);
+  });
+</script>
+</body>
+</html>
