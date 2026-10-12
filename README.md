@@ -19,25 +19,61 @@
 
 ```
 vibe-lab1/
-├── frontend/          纯静态前端（单文件 index.html，预约/判重/取消逻辑）
-├── backend/           Node 原生 http 后端（零 npm 依赖）
-│   ├── server.js      入口：/ping、/api/bookings、静态托管 frontend/
+├── frontend/          纯静态前端（单文件 index.html，预约/判重/取消/统计/AI助手）
+├── backend/           Node 原生 http 后端（零 npm 依赖，CommonJS）
+│   ├── server.js      入口：路由分发 + 静态托管 frontend/
 │   ├── db.js          数据层：node:sqlite 连接与查询
+│   ├── ai.js          AI 助手：DeepSeek 封装 + 失败兜底
 │   └── init-db.js     手动初始化脚本（幂等）
+├── functions/         Cloudflare Pages Functions（ESM，线上部署适配层）
+│   ├── _lib/queries.js   D1 数据层（与 backend/db.js 接口对齐）
+│   ├── index.js          静态托管 + SPA fallback
+│   ├── ping.js           健康检查
+│   └── api/              API 路由（bookings/{index,[id]}、ping、stats、visits）
 ├── db/                SQL 脚本
 │   ├── schema.sql     建表 + 唯一索引（互斥键 equip_id+date+slot）
 │   └── seed.sql       示例数据（幂等）
-├── data/              运行时生成的 SQLite 文件（equipment.db）
+├── data/              运行时生成的 SQLite 文件（equipment.db，不进版本库）
 ├── tests/             接口测试（node:test，零依赖；5 条业务规则，独立测试库 test.db）
-├── docs/              PRD / 技术方案 / 任务看板 / 部署手册
-├── package.json       scripts：start、db:init；engines.node ≥ 22
-├── entrypoint.sh      Sealos DevBox 发布为正式应用时的 OCI 镜像入口点
-├── Dockerfile         容器镜像（Sealos 应用管理 镜像部署备选用，node:22-slim）
-├── .dockerignore      排除 data/、node_modules、.git 等
-├── render.yaml        Render Blueprint（Render/Zeabur 备选配置）
-├── README.md
-└── AGENTS.md          AI 编码代理协作规范
+├── docs/              PRD / 技术方案 / 任务看板 / 部署手册 / 反思录 / 演示脚本
+├── .workflow/         CI 配置（ci.yml，Gitee Go）
+├── wrangler.toml      Cloudflare D1 binding 声明（本地 npm start 不依赖）
+├── package.json       scripts：start、test、db:init；engines.node ≥ 22
+├── AGENTS.md           AI 编码代理协作规范
+└── README.md
 ```
+
+> **历史备选文件**：`entrypoint.sh` / `Dockerfile` / `.dockerignore` / `render.yaml` 为 Sealos / Render 备选部署方案，已降为备用（详见部署章节）。
+
+## 架构图
+
+```mermaid
+graph TB
+    subgraph Local["本地开发 — npm start"]
+        FE1["frontend/index.html<br/>纯静态单文件"] -->|"fetch /api/*"| BE1["backend/server.js<br/>Node http · CommonJS"]
+        BE1 --> DB1["backend/db.js<br/>node:sqlite"]
+        DB1 --> DB_FILE[("data/equipment.db")]
+        BE1 --> AI1["backend/ai.js"]
+        AI1 -->|"HTTPS"| DS["DeepSeek API"]
+    end
+
+    subgraph Cloudflare["线上部署 — Cloudflare Pages"]
+        FE2["frontend/index.html<br/>静态托管"] -->|"fetch /api/*"| FN["functions/<br/>Pages Functions · ESM"]
+        FN -->|"binding DB"| D1[("Cloudflare D1")]
+        FN -->|"HTTPS"| DS
+    end
+
+    subgraph CI["CI — Gitee Go"]
+        PUSH["git push master"] --> PIPE[".workflow/ci.yml"]
+        PIPE -->|"npm test"| TEST["tests/api.test.js<br/>5 条业务规则"]
+    end
+
+    FE1 -.->|"同代码"| FE2
+    BE1 -.->|"接口对齐"| FN
+    DB1 -.->|"SQL 同构"| D1
+```
+
+**双轨架构**：本地走 `backend/`（CommonJS + `node:sqlite`），线上走 `functions/`（ESM + D1 binding），前端 `frontend/index.html` 通过相对路径 `/api/*` 调用，本地与线上同代码无需切换。详见 [技术方案 §11](docs/技术方案.md)。
 
 ## 快速开始
 
@@ -151,6 +187,7 @@ npm run db:init      # 幂等初始化 data/equipment.db（建表 + 示例数据
 - [docs/技术方案.md](docs/技术方案.md) — 架构与选型
 - [docs/任务看板.md](docs/任务看板.md) — 任务拆解与状态
 - [docs/部署手册.md](docs/部署手册.md) — Cloudflare Pages + Functions + D1 部署步骤与坑（T2）
+- [docs/演示脚本.md](docs/演示脚本.md) — 90 秒闭环演示脚本 + 审题三问问答
 - [AGENTS.md](AGENTS.md) — AI 编码代理协作规范
 
 ## 已知限制
