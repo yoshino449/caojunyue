@@ -17,3 +17,6 @@ Thumbs.db
 
 # 调试日志（不入库）
 debug.log
+
+# Office 临时锁定文件（不入库）
+~$*
