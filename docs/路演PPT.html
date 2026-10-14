@@ -138,30 +138,32 @@
     <div class="summary">结果：本地与线上同代码同行为，AI 助手兜底提示完全一致。</div>
   </section>
 
-  <!-- 第6页 测试可重入性 + 总结 -->
+  <!-- 第6页 总结 -->
   <section class="slide" data-page="6">
-    <h2><span class="num">05</span>测试可重入性 + 总结</h2>
+    <h2><span class="num">05</span>总结：5 个坑，5 个闭环</h2>
     <div class="issue-grid">
       <div class="block warn-block">
-        <span class="label">问题</span>
-        <h3>测试跑挂三连击</h3>
+        <span class="label">踩过的坑</span>
+        <h3>从部署到测试，处处是"默认"</h3>
         <ul>
-          <li>Node 22 Windows 下 --test tests/ 报 Cannot find module</li>
-          <li>断言消息里 await res.text() 提前消费响应流</li>
-          <li>用例未清理残留数据，共用互斥键连锁 409</li>
+          <li>换个设备就撞单——规则写在了浏览器里</li>
+          <li>按教程配的 CI 跑不起来</li>
+          <li>本地和线上同一个问题说两种话</li>
+          <li>测试连跑三次全挂，业务代码一行没改</li>
         </ul>
       </div>
       <div class="block">
-        <span class="label">解决</span>
-        <h3>改用例不改业务</h3>
+        <span class="label">我们改了什么</span>
+        <h3>只动必须动的，不碰已经对的</h3>
         <ul>
-          <li>改 --test tests/api.test.js（具体文件路径）</li>
-          <li>先读 body 再断言（createOk 辅助函数）</li>
-          <li>before 钩子清库 + 用例 try/finally 自清</li>
+          <li>把"不能撞"钉死在数据库</li>
+          <li>照 Gitee Go 的脾气重写配置</li>
+          <li>统一两端的错误提示</li>
+          <li>测试脚本自己修，业务代码零改动</li>
         </ul>
       </div>
     </div>
-    <div class="summary">5 条业务规则全绿且连跑可重入；业务代码零改动。<br>所有问题已闭环，现场能跑：https://caojunyue.pages.dev/</div>
+    <div class="summary">所有问题已闭环 · 5 条测试全绿 · 现场能跑：<span class="url" style="font-size:.85rem">https://caojunyue.pages.dev/</span></div>
   </section>
 
 </div>
