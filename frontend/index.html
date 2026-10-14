@@ -50,7 +50,17 @@
     min-height: 44px;
     flex: 1;
   }
-  .bookings .label { font-size: 12px; color: #8a9099; }
+  .bookings .label {
+    font-size: 12px; color: #8a9099;
+    cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .bookings .label::before {
+    content: '▾'; display: inline-block; font-size: 10px;
+    transition: transform .15s;
+  }
+  .bookings.collapsed .label::before { transform: rotate(-90deg); }
+  .bookings.collapsed ul, .bookings.collapsed .empty { display: none; }
   .bookings ul { list-style: none; margin-top: 6px; }
   .bookings li {
     font-size: 13px;
@@ -358,15 +368,19 @@
         <div class="icon">${eq.icon}</div>
         <h2>${eq.name}</h2>
         <div class="model">${eq.model}</div>
-        <div class="bookings">
+        <button class="btn btn-primary" data-id="${eq.id}">预约</button>
+        <div class="bookings collapsed">
           <div class="label">近期预约（${mine.length}）</div>
           ${listHtml}
         </div>
-        <button class="btn btn-primary" data-id="${eq.id}">预约</button>
       `;
       card.querySelector('.btn-primary').addEventListener('click', () => openModal(eq.id));
       card.querySelectorAll('.cancel-btn').forEach((btn, i) => {
         btn.addEventListener('click', () => cancelBooking(mine[i]));
+      });
+      const bookingsEl = card.querySelector('.bookings');
+      bookingsEl.querySelector('.label').addEventListener('click', () => {
+        bookingsEl.classList.toggle('collapsed');
       });
       wrap.appendChild(card);
     });
