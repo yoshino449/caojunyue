@@ -86,73 +86,56 @@
 
   <!-- 第3页 互斥判重从前端迁到服务端 -->
   <section class="slide" data-page="3">
-    <h2><span class="num">02</span>互斥判重从前端迁到服务端</h2>
+    <h2><span class="num">02</span>换个设备就撞单？</h2>
     <div class="issue-grid">
       <div class="block warn-block">
         <span class="label">问题</span>
-        <h3>localStorage 前端判重跨设备失效</h3>
-        <p>v1 用浏览器 localStorage 存预约 + 前端判重：A 设备约了，B 设备看不到，会撞单；浏览器清缓存后判重数据全丢。</p>
+        <h3>v1 只在自己浏览器里记</h3>
+        <p>同学 A 在电脑上约了投影仪，同学 B 手机打开页面——电脑记的事手机看不到，B 又约了同一时段，撞单了！</p>
       </div>
       <div class="block">
         <span class="label">解决</span>
-        <h3>服务端数据库唯一索引 + 409</h3>
-        <p>schema.sql 建 UNIQUE(equip_id, date, slot) 唯一索引；POST /api/bookings 插入冲突返回 409；前端不再本地判重，以服务端 409 为唯一事实源。</p>
+        <h3>把"不能撞"钉死在数据库</h3>
+        <p>预约规则从浏览器搬到服务器：任何设备来约，服务器先查数据库——有冲突直接拒，前端只管提交不管判。</p>
       </div>
     </div>
-    <div class="summary">结果：跨设备撞单由数据库兜底，前端 v1 localStorage 判重逻辑已废弃。</div>
+    <div class="summary">结果：跨设备再也撞不了单，前端那套旧逻辑直接废掉。</div>
   </section>
 
   <!-- 第4页 CI 踩坑 -->
   <section class="slide" data-page="4">
-    <h2><span class="num">03</span>CI 踩坑（Gitee Go）</h2>
+    <h2><span class="num">03</span>CI 流水线按文档写的跑不起来</h2>
     <div class="issue-grid">
       <div class="block warn-block">
         <span class="label">问题</span>
-        <h3>YAML schema 与直觉不同 + 通知不可达</h3>
-        <ul>
-          <li>commands 多行块报"steps 配置缺失"</li>
-          <li>按分支发现 YAML，主线 main 但默认分支 master</li>
-          <li>社区版站内信/邮件均收不到（成功失败皆然）</li>
-          <li>build@nodejs 插件最高 15.x，跑不了 node:sqlite</li>
-        </ul>
+        <h3>Gitee Go 处处是"默认"</h3>
+        <p>按教程写的配置格式不对、分支对不上、自带的 Node 版本太低跑不了我们的代码——推上去全红。</p>
       </div>
       <div class="block">
         <span class="label">解决</span>
-        <h3>按 schema 重写 + 双分支同步</h3>
-        <ul>
-          <li>commands 改字符串列表（链式单行）</li>
-          <li><code>git push origin main:master</code> 同步</li>
-          <li>以构建历史页状态为准（README 踩坑 4 记录）</li>
-          <li>npmmirror 源自装 Node 22 后 npm test</li>
-        </ul>
+        <h3>照它的脾气改，装它没有的</h3>
+        <p>按 Gitee Go 的格式重写配置、双分支同步、流水线里先装 Node 22 再跑测试——现在 push 自动验。</p>
       </div>
     </div>
-    <div class="summary">结果：push → 装依赖 → 跑测试全绿；故意失败验证 CI 拦截有效。</div>
+    <div class="summary">结果：push → 自动装依赖 → 自动跑测试全绿，故意写错能拦住。</div>
   </section>
 
   <!-- 第5页 跨环境一致性 -->
   <section class="slide" data-page="5">
-    <h2><span class="num">04</span>跨环境一致性</h2>
+    <h2><span class="num">04</span>本地跑通，线上报错不一样</h2>
     <div class="issue-grid">
       <div class="block warn-block">
         <span class="label">问题</span>
-        <h3>Functions 命名限制 + 402 状态码不一致</h3>
-        <ul>
-          <li>Cloudflare Pages Functions 的 DELETE 处理器用 onDelete 命名 → 405</li>
-          <li>DeepSeek 402（余额不足）：本地后端映射 QUOTA→429；线上 Functions 直接返回 503</li>
-        </ul>
+        <h3>AI 助手失败了，用户看到两副面孔</h3>
+        <p>本地调 AI 额度用尽 → 提示"请稍后再试"，线上同样情况 → 提示"服务不可用"，同一个问题说两种话，用户懵了。</p>
       </div>
       <div class="block">
         <span class="label">解决</span>
-        <h3>对齐命名 + 统一状态码映射</h3>
-        <ul>
-          <li>DELETE 处理器改名 onRequestDelete（commit 204e76f）</li>
-          <li>线上 Functions 的 402 分支改返回 429（commit b3a1fa3）</li>
-          <li>与本地 backend/ai.js 的 QUOTA→429 映射对齐</li>
-        </ul>
+        <h3>对齐两端的错误码</h3>
+        <p>把线上和本地的错误提示统一映射，不管在哪跑、怎么跑，用户看到的提示永远一致。</p>
       </div>
     </div>
-    <div class="summary">结果：本地与线上同代码同行为，AI 助手失败兜底一致。</div>
+    <div class="summary">结果：本地与线上同代码同行为，AI 助手兜底提示完全一致。</div>
   </section>
 
   <!-- 第6页 测试可重入性 + 总结 -->
