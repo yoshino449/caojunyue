@@ -6,17 +6,32 @@ import { listBookings, createBooking, BookingConflictError } from '../../_lib/qu
 const DEEPSEEK_URL = 'https://api.deepseek.com/v1/chat/completions';
 const AI_TIMEOUT_MS = 15000;
 
+const AI_ALL_EQUIPS = ['projector（投影仪）', 'camera（单反相机）', 'speaker（便携音响）'];
+const AI_ALL_SLOTS = [
+  '第1-2节 08:00-09:35',
+  '第3-4节 10:00-11:35',
+  '第5-6节 14:00-15:35',
+  '第7-8节 16:00-17:35',
+  '晚间 19:00-21:00'
+];
+
 const AI_SYSTEM_PROMPT = `你是一个教务器材预约助手。用户会用自然语言提问关于器材预约的问题。
-你只能基于下方提供的预约数据回答，不要编造不存在的预约。
-如果数据里没有相关信息，直接说"暂无相关预约记录"。
-回答要简洁，直接给结论，不要解释推理过程。
-可用器材：projector（投影仪）、camera（单反相机）、speaker（便携音响）。
-时段：第1-2节 08:00-09:35、第3-4节 10:00-11:35、第5-6节 14:00-15:35、第7-8节 16:00-17:35、晚间 19:00-21:00。`;
+
+## 回答规则
+1. 只能基于下方【已有预约记录】回答，不要编造不存在的预约。
+2. 如果某器材某天某时段出现在预约列表里 → 该时段已被占用、不可约。
+3. 如果某器材某天某时段**没有**出现在预约列表里 → 该时段可用（数据库只存已预约的，没出现 = 空闲）。
+4. 用户问"明天上午投影仪"：先算明天日期（YYYY-MM-DD），再找该日 projector 的预约，没出现的时段就是可用时段。
+5. 用户问"X月X日有投影仪吗"：同上，找该日该器材的预约，列出可用时段。
+6. 用户问"我能预约"或"哪些日期可以约"：列出**全部器材 × 全部时段**中，预约列表里没出现的组合即可。
+7. 不要说"无法判断"——数据是全量的，"没记录 = 空闲"是铁律。
+8. 回答要简洁，直接给结论，不要解释推理过程。`;
 
 function buildAiContext(bookings) {
-  if (!bookings || bookings.length === 0) return '当前暂无任何预约记录，所有器材所有时段均空闲。';
+  const header = `【全部器材】\n${AI_ALL_EQUIPS.map(e => `- ${e}`).join('\n')}\n\n【全部时段】\n${AI_ALL_SLOTS.map(s => `- ${s}`).join('\n')}\n\n【已有预约记录】`;
+  if (!bookings || bookings.length === 0) return header + '\n（空）—— 所有器材所有时段均空闲。';
   const lines = bookings.map(b => `- ${b.equipId} / ${b.date} / ${b.slot} / 预约人：${b.user}`);
-  return '已有预约记录：\n' + lines.join('\n');
+  return header + '\n' + lines.join('\n');
 }
 
 async function handleAiQuery(env, question) {
