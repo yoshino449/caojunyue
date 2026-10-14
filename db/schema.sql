@@ -18,3 +18,10 @@ CREATE TABLE IF NOT EXISTS visits (
 );
 INSERT OR IGNORE INTO visits (id, count) VALUES (1, 0);
 
+-- 用户表：登录系统（v2 新增）
+CREATE TABLE IF NOT EXISTS users (
+  username TEXT PRIMARY KEY,
+  password TEXT NOT NULL
+);
+INSERT OR IGNORE INTO users (username, password) VALUES ('yoshino', 'cjy20060122');
+

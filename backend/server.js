@@ -4,7 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const { ensureDb, listBookings, createBooking, deleteBooking, getStats, incrementVisits, getVisits, BookingConflictError } = require('./db');
+const { ensureDb, listBookings, createBooking, deleteBooking, getStats, incrementVisits, getVisits, login, BookingConflictError } = require('./db');
 const { queryDeepSeek } = require('./ai');
 
 const PORT = process.env.PORT || 3000;   // Render 注入 PORT 环境变量；本地默认 3000
@@ -108,6 +108,21 @@ const server = http.createServer((req, res) => {
   // 访问统计（T2）：返回当前页面访问计数
   if (req.method === 'GET' && pathname === '/api/visits') {
     return send(res, 200, JSON.stringify(getVisits()), 'application/json; charset=utf-8');
+  }
+
+  // 登录：校验用户名+密码，成功返回 {ok:true, username}
+  if (req.method === 'POST' && pathname === '/api/login') {
+    return readJsonBody(req)
+      .then(input => {
+        const username = String(input.username || '').trim();
+        const password = String(input.password || '').trim();
+        if (!username || !password) return sendJson(res, 400, { error: '请填写用户名和密码' });
+        if (login(username, password)) {
+          return sendJson(res, 200, { ok: true, username });
+        }
+        return sendJson(res, 401, { ok: false, error: '用户名或密码错误' });
+      })
+      .catch(err => sendJson(res, 400, { error: err.message }));
   }
 
   // 新建预约：校验 → 写入；唯一索引冲突 → 409（互斥规则在数据库层兜底）

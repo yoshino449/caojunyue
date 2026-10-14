@@ -180,6 +180,31 @@
   }
   .stats-btn:hover { background: #f2f3f5; }
 
+  /* 登录状态条 */
+  .auth-bar {
+    position: absolute;
+    top: 32px;
+    left: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .auth-status { color: #8a9099; }
+  .auth-status.logged-in { color: #3370ff; }
+  .auth-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    border: 1px solid #d8dade;
+    background: #fff;
+    color: #41464d;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .auth-btn:hover { background: #f2f3f5; }
+
+  .modal-login { max-width: 340px; }
+
   .modal-stats { max-width: 420px; }
   .chart-block { margin-top: 18px; }
   .chart-title { font-size: 13px; color: #646a73; margin-bottom: 6px; }
@@ -226,6 +251,10 @@
 <header>
   <h1>教务器材预约</h1>
   <p>选择器材、日期与时段，同一器材同一时段不可重复预约</p>
+  <div class="auth-bar">
+    <span id="authStatus" class="auth-status">未登录</span>
+    <button type="button" class="auth-btn" id="btnLogin">登录</button>
+  </div>
   <button type="button" class="stats-btn" id="btnStats">📊 统计</button>
   <button type="button" class="stats-btn" id="btnAi" style="right: 100px;">🤖 AI 助手</button>
 </header>
@@ -233,6 +262,24 @@
 <main class="cards" id="cards"></main>
 
 <footer id="visitsFooter">本页已被访问 — 次</footer>
+
+<!-- 登录弹窗 -->
+<div class="overlay" id="loginOverlay">
+  <div class="modal">
+    <h3>登录</h3>
+    <div class="field">
+      <label for="loginUser">用户名</label>
+      <input id="loginUser" type="text" autocomplete="username" maxlength="30">
+    </div>
+    <div class="field">
+      <label for="loginPass">密码</label>
+      <input id="loginPass" type="password" autocomplete="current-password" maxlength="50">
+    </div>
+    <button class="btn btn-primary" id="btnLoginSubmit">登录</button>
+    <button class="btn btn-ghost" id="btnLoginCancel" style="margin-top:8px;">取消</button>
+    <div class="error-msg" id="loginError"></div>
+  </div>
+</div>
 
 <!-- 预约弹窗 -->
 <div class="overlay" id="overlay">
@@ -397,7 +444,10 @@
     currentEquipId = equipId;
     const eq = EQUIPMENTS.find(e => e.id === equipId);
     document.getElementById('modalTitle').textContent = `预约「${eq.name}」`;
-    document.getElementById('inputUser').value = '';
+    // 已登录则自动填用户名
+    const loggedUser = localStorage.getItem('authUser');
+    document.getElementById('inputUser').value = loggedUser || '';
+    document.getElementById('inputUser').disabled = !!loggedUser;
     document.getElementById('inputDate').value = '';
     document.getElementById('inputDate').min = todayStr();
     document.getElementById('inputSlot').value = '';
@@ -570,7 +620,78 @@
     }
   }
 
+  /* ---------- 登录系统 ---------- */
+  function updateAuthBar() {
+    const user = localStorage.getItem('authUser');
+    const status = document.getElementById('authStatus');
+    const btn = document.getElementById('btnLogin');
+    if (user) {
+      status.textContent = `已登录：${user}`;
+      status.classList.add('logged-in');
+      btn.textContent = '退出';
+    } else {
+      status.textContent = '未登录';
+      status.classList.remove('logged-in');
+      btn.textContent = '登录';
+    }
+  }
+
+  function openLogin() {
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginError').textContent = '';
+    document.getElementById('loginOverlay').classList.add('show');
+    setTimeout(() => document.getElementById('loginUser').focus(), 50);
+  }
+  function closeLogin() {
+    document.getElementById('loginOverlay').classList.remove('show');
+  }
+
+  async function doLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value.trim();
+    const errEl = document.getElementById('loginError');
+    if (!username || !password) { errEl.textContent = '请填写用户名和密码'; return; }
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('authUser', data.username);
+        updateAuthBar();
+        closeLogin();
+        showToast(`欢迎，${data.username}！`);
+      } else {
+        errEl.textContent = data.error || '登录失败';
+      }
+    } catch (e) {
+      errEl.textContent = '网络异常，请稍后重试';
+    }
+  }
+
+  function handleAuthBtn() {
+    if (localStorage.getItem('authUser')) {
+      localStorage.removeItem('authUser');
+      updateAuthBar();
+      showToast('已退出登录');
+    } else {
+      openLogin();
+    }
+  }
+
+  // 初始化登录状态条
+  updateAuthBar();
+
   /* ---------- 事件绑定 ---------- */
+  document.getElementById('btnLogin').addEventListener('click', handleAuthBtn);
+  document.getElementById('btnLoginSubmit').addEventListener('click', doLogin);
+  document.getElementById('btnLoginCancel').addEventListener('click', closeLogin);
+  document.getElementById('loginOverlay').addEventListener('click', e => {
+    if (e.target.id === 'loginOverlay') closeLogin();
+  });
   document.getElementById('btnSubmit').addEventListener('click', submitBooking);
   document.getElementById('btnCancel').addEventListener('click', closeModal);
   document.getElementById('overlay').addEventListener('click', e => {

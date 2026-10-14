@@ -73,3 +73,11 @@ export async function getVisits(env) {
     .first();
   return { count: row ? row.count : 0 };
 }
+
+// 登录校验：明文比对（零依赖，够用）；成功返回 true，失败返回 false
+export async function checkLogin(env, username, password) {
+  const row = await env.DB
+    .prepare('SELECT password FROM users WHERE username = ?')
+    .first(username);
+  return row && row.password === password;
+}

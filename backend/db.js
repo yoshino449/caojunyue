@@ -90,4 +90,12 @@ function getVisits() {
   return { count: row ? row.count : 0 };
 }
 
-module.exports = { ensureDb, listBookings, createBooking, deleteBooking, getStats, incrementVisits, getVisits, BookingConflictError };
+// 登录校验：明文比对（零依赖，够用）；成功返回 true，失败返回 false
+function login(username, password) {
+  const row = openDb()
+    .prepare('SELECT password FROM users WHERE username = ?')
+    .get(username);
+  return row && row.password === password;
+}
+
+module.exports = { ensureDb, listBookings, createBooking, deleteBooking, getStats, incrementVisits, getVisits, login, BookingConflictError };
